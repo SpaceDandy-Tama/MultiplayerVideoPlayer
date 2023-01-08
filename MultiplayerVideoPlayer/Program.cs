@@ -25,11 +25,13 @@ namespace MultiplayerVideoPlayer
         
         static async Task OldMain(string[] args)
         {
+            /*
             if(ValidateFiles() == false)
             {
                 await Update();
                 return;
             }
+            */
 
             string filePath = null;
             string hostName = null;
@@ -64,10 +66,10 @@ namespace MultiplayerVideoPlayer
                     return;
                 }
 
-                if (!IsTheFilePathValid(argi[0]))
-                    quit = true;
-                else
+                if (argi[0].StartsWith("http") || File.Exists(argi[0]))
                     filePath = argi[0];
+                else
+                    quit = true;
 
                 if (argi.Length < 2 || !int.TryParse(argi[1], out port))
                     port = 7243;
@@ -88,10 +90,10 @@ namespace MultiplayerVideoPlayer
                     await Update(delete: true);
                     return;
                 }
-                else if (!IsTheFilePathValid(args[0]))
-                    quit = true;
-                else
+                else if (args[0].StartsWith("http") || File.Exists(args[0]))
                     filePath = args[0];
+                else
+                    quit = true;
 
                 if (args.Length < 2 || !int.TryParse(args[1], out port))
                     port = 7243;
@@ -144,15 +146,6 @@ namespace MultiplayerVideoPlayer
         {
             StartNetworkManager(hostName, port);
             Application.Run(Form = new MvpMain(filePath, titleName));
-        }
-
-        // New method to prevent code repetation
-        private static bool IsTheFilePathValid(string args)
-        {
-            if (args.StartsWith("http", StringComparison.OrdinalIgnoreCase) == false && File.Exists(args) == false)
-                return false;
-            else
-                return true;
         }
 
         private static async void StartNetworkManager(string hostName, int port)
