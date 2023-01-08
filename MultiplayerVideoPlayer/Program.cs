@@ -3,12 +3,13 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Windows.Forms;
 using System.Collections.Generic;
+using System.Net.Http;
 
 namespace MultiplayerVideoPlayer
 {
     internal static class Program
     {
-        public static Form1 Form;
+        public static MvpMain Form;
         public static NetworkManager NetworkManager;
 
         public const int DownloadTimeOutSeconds = 60;
@@ -18,6 +19,12 @@ namespace MultiplayerVideoPlayer
         /// </summary>
         static async Task Main(string[] args)
         {
+            if(ValidateFiles() == false)
+            {
+                await Update();
+                return;
+            }
+
             string filePath = null;
             string hostName = null;
             int port = -1;
@@ -28,7 +35,18 @@ namespace MultiplayerVideoPlayer
                 quit = true;
             else
             {
-                if (args[0].StartsWith("http", StringComparison.OrdinalIgnoreCase) == false && File.Exists(args[0]) == false)
+                if (args[0].Equals("-update"))
+                {
+                    await Update();
+                    return;
+                }
+                else if (args[0].Equals("-deleteUpdater"))
+                {
+                    await Task.Delay(1000);
+                    await Update(delete: true);
+                    return;
+                }
+                else if (args[0].StartsWith("http", StringComparison.OrdinalIgnoreCase) == false && File.Exists(args[0]) == false)
                     quit = true;
                 else
                     filePath = args[0];
@@ -39,7 +57,7 @@ namespace MultiplayerVideoPlayer
                 string hostOnlyDir = Path.Combine(Application.StartupPath, "hostonly");
                 string hostNameDir = "hostname";
                 string[] fileNames = Directory.GetFiles(Application.StartupPath);
-                foreach(string fileName in fileNames)
+                foreach (string fileName in fileNames)
                 {
                     if (Path.GetFileName(fileName).StartsWith(hostNameDir))
                     {
@@ -79,7 +97,7 @@ namespace MultiplayerVideoPlayer
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(Form = new Form1(filePath, titleName));
+            Application.Run(Form = new MvpMain(filePath, titleName));
         }
 
         private static async void StartNetworkManager(string hostName, int port)
@@ -89,6 +107,67 @@ namespace MultiplayerVideoPlayer
 
             NetworkManager = new NetworkManager(hostName, port);
         }
+
+        #region Update Related Methods
+        private static bool ValidateFiles()
+        {
+            //Checksum later?
+            string[] requiredFiles = new string[]
+            {
+                "LibVLCSharp.dll",
+                "LibVLCSharp.WinForms.dll",
+                "LiteNetLib.dll",
+                "MultiplayerVideoPlayer.exe",
+                "System.Buffers.dll",
+                "System.Memory.dll",
+                "System.Numerics.Vectors.dll",
+                "System.Runtime.CompilerServices.Unsafe.dll",
+                "Xamarin.Forms.Core.dll",
+                "Xamarin.Forms.Platform.dll",
+                "Xamarin.Forms.Xaml.dll"
+            };
+            string[] requiredDirs = new string[]
+            {
+                "libvlc",
+            };
+
+            foreach(string requiredFile in requiredFiles)
+            {
+                if (!File.Exists(requiredFile))
+                    return false;
+            }
+            foreach(string requiredDir in requiredDirs)
+            {
+                if (!Directory.Exists(requiredDir))
+                    return false;
+            }
+
+            return true;
+        }
+        private static async Task Update(bool delete = false)
+        {
+            string url = "https://spacewardgame.com/temp/MVP/MVPUpdater.exe";
+            string path = Path.Combine(Application.StartupPath, "MVPUpdater.exe");
+
+            if (File.Exists(path))
+                File.Delete(path);
+
+            if (delete)
+                return;
+
+            HttpClient httpClient = new HttpClient();
+
+            using (Stream stream = await httpClient.GetStreamAsync(url))
+            {
+                using (FileStream fileStream = new FileStream(path, FileMode.CreateNew))
+                {
+                    await stream.CopyToAsync(fileStream);
+                }
+            }
+
+            System.Diagnostics.Process.Start(path);
+        }
+        #endregion
 
         #region Download Related Methods
         private static async Task<string> DownloadFromYoutube(string link)

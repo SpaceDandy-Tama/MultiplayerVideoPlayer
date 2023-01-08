@@ -1,6 +1,6 @@
 ﻿namespace MultiplayerVideoPlayer
 {
-    partial class Form1
+    partial class MvpMain
     {
         /// <summary>
         /// Required designer variable.

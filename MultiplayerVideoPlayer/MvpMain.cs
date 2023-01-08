@@ -14,7 +14,7 @@ using LibVLCSharp.WinForms;
 
 namespace MultiplayerVideoPlayer
 {
-    public partial class Form1 : Form
+    public partial class MvpMain : Form
     {
         private bool IsNetworked => Program.NetworkManager.Manager.ConnectedPeersCount > 0;
         private bool IsAuthoritative => Program.NetworkManager.IsServer;
@@ -40,7 +40,7 @@ namespace MultiplayerVideoPlayer
         private bool CtrlHold;
         private bool AltHold;
 
-        public Form1(string filePath, string titleName)
+        public MvpMain(string filePath, string titleName)
         {
             InitializeComponent();
 
