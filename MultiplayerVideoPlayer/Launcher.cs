@@ -14,9 +14,9 @@ namespace MultiplayerVideoPlayer
 {
     public partial class Launcher : Form
     {
-        private string Link;
-        private string Port;
-        private string IP = "7243";
+        private string Link => textBox1.Text;
+        private string Port => textBox3.Text;
+        private string IP => textBox4.Text;
         private string UpdateCommand = "-update";
         private string[] Args;
         private string Filter = "Video Files (*.mkv, *.mp4, *.webm,)|*.mkv;*.mp4;*.webm";
@@ -24,21 +24,21 @@ namespace MultiplayerVideoPlayer
         public Launcher()
         {
             InitializeComponent();
+            string clipBoard = Clipboard.GetText();
+            if(clipBoard != null && clipBoard.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                textBox1.Text = clipBoard;
+            }
         }
 
         private void button1_Click(object sender, EventArgs e)
         {
-            Link = textBox1.Text;
-            Port = textBox4.Text;
             Args = new string[2] { Link, Port };
             Close();
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            Link = textBox1.Text;
-            IP = textBox4.Text;
-            Port = textBox3.Text;
             Args = new string[3] { Link, Port, IP };
             Close();
         }      
@@ -54,9 +54,14 @@ namespace MultiplayerVideoPlayer
             openFileDialog1.InitialDirectory = Application.StartupPath;
             openFileDialog1.Filter = Filter;
             openFileDialog1.ShowDialog();
-            string filename = openFileDialog1.FileName;
+            string filename;
+            if (openFileDialog1.FileName != "openFileDialog1")
+                filename = openFileDialog1.FileName;
+            else
+                filename = "";
+
             textBox1.Text = filename;
-        }    
+        }
 
         public string[] HandleArgs() => Args;
 
