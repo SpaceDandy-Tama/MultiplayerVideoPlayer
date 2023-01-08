@@ -266,6 +266,9 @@ namespace MultiplayerVideoPlayer
         {
             NetworkManager.IsClosing = true;
 
+            if (!Program.TempFilesDownloaded)
+                return;
+
             DialogResult result = MessageBox.Show("Do you want to keep this video?", "Downloaded Video", MessageBoxButtons.YesNo);
 
             MediaPlayer?.Stop();

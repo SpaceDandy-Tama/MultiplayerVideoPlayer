@@ -20,7 +20,7 @@ namespace MVPUpdater
         {
             DeleteOldFilesAndDirs();
             progressBar1.Value = 10;
-            string updatePackage = await DownloadUpdatePackage("MVPv5.zip");
+            string updatePackage = await DownloadUpdatePackage("MVPv6.zip");
             progressBar1.Value += 10;
             ExtractPackage(updatePackage);
             progressBar1.Value = 100;

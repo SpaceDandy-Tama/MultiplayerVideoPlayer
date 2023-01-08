@@ -14,6 +14,7 @@ namespace MultiplayerVideoPlayer
         public static NetworkManager NetworkManager;
 
         public const int DownloadTimeOutSeconds = 60;
+        public static bool TempFilesDownloaded = false;
 
         /// <summary>
         /// The main entry point for the application.
@@ -259,6 +260,7 @@ namespace MultiplayerVideoPlayer
             }
 
             await Task.Delay(1000);
+            TempFilesDownloaded = true;
 
             return resultFileName;
         }
