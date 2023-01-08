@@ -10,6 +10,7 @@ namespace MultiplayerVideoPlayer
     internal static class Program
     {
         public static MvpMain Form;
+        public static Launcher Form2;
         public static NetworkManager NetworkManager;
 
         public const int DownloadTimeOutSeconds = 60;
@@ -17,7 +18,11 @@ namespace MultiplayerVideoPlayer
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
-        static async Task Main(string[] args)
+
+        [STAThread] 
+        static void Main(string[] args) => OldMain(args).GetAwaiter().GetResult();
+        
+        static async Task OldMain(string[] args)
         {
             if(ValidateFiles() == false)
             {
@@ -31,8 +36,44 @@ namespace MultiplayerVideoPlayer
 
             bool quit = false;
 
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+
+
             if (args == null || args.Length == 0)
-                quit = true;
+            {
+                /* Checks if there are any arguments to the program, if not launchers the launcher for setup,
+                 * returns the values from the launcher to use as arguments, the launcher determines the directroy/url, port and if you are client or host
+                 * if there are no arguements from the launcher returns
+                 * checks if the 1st arguemnt is valid if not quits
+                 * checks the port if not vlaid defaults to 7243
+                 * if there is a 3rd arguements sets as client with the ip on 3rd argument as host                 
+                */
+
+                Form2 = new Launcher();
+                Form2.ShowDialog();
+                string[] argi = Form2.HandleArgs();
+
+                if(argi == null || argi.Length == 0)
+                    return;
+
+                if (argi[0].Equals("-update"))
+                {
+                    await Update();
+                    return;
+                }
+
+                if (!IsTheFilePathValid(argi[0]))
+                    quit = true;
+                else
+                    filePath = argi[0];
+
+                if (argi.Length < 2 || !int.TryParse(argi[1], out port))
+                    port = 7243;
+
+                if (argi.Length > 2)
+                    hostName = argi[2];
+            }
             else
             {
                 if (args[0].Equals("-update"))
@@ -46,7 +87,7 @@ namespace MultiplayerVideoPlayer
                     await Update(delete: true);
                     return;
                 }
-                else if (args[0].StartsWith("http", StringComparison.OrdinalIgnoreCase) == false && File.Exists(args[0]) == false)
+                else if (!IsTheFilePathValid(args[0]))
                     quit = true;
                 else
                     filePath = args[0];
@@ -93,11 +134,24 @@ namespace MultiplayerVideoPlayer
                 filePath = fileName;
             }
 
-            StartNetworkManager(hostName, port);
+            PlayMedia(quit, filePath, hostName, port, titleName);
+        }
 
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
+        // New method to prevent code repetation,
+        // if the program launcher with arguments, regular checks are made if the arguements came from the launcher and they are valid they are directly pushed to the video client
+        public static void PlayMedia(bool quit,string filePath,string hostName,int port,string titleName)
+        {
+            StartNetworkManager(hostName, port);
             Application.Run(Form = new MvpMain(filePath, titleName));
+        }
+
+        // New method to prevent code repetation
+        private static bool IsTheFilePathValid(string args)
+        {
+            if (args.StartsWith("http", StringComparison.OrdinalIgnoreCase) == false && File.Exists(args) == false)
+                return false;
+            else
+                return true;
         }
 
         private static async void StartNetworkManager(string hostName, int port)
