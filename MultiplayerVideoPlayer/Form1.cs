@@ -266,13 +266,18 @@ namespace MultiplayerVideoPlayer
         {
             NetworkManager.IsClosing = true;
 
+            DialogResult result = MessageBox.Show("Do you want to keep this video?", "Downloaded Video", MessageBoxButtons.YesNo);
+
             MediaPlayer?.Stop();
             MediaPlayer?.Media?.Dispose();
             Media?.Dispose();
             MediaPlayer?.Dispose();
             LibVLC?.Dispose();
 
-            Program.RemoveTempFiles();
+            if (result == DialogResult.Yes)
+                Program.KeepTempFiles();
+            else
+                Program.RemoveTempFiles();
         }
 
         private void timer1_Tick(object sender, EventArgs e)

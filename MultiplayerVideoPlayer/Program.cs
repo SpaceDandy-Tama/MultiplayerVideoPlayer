@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using System.IO;
 using System.Windows.Forms;
+using System.Collections.Generic;
 
 namespace MultiplayerVideoPlayer
 {
@@ -10,7 +11,7 @@ namespace MultiplayerVideoPlayer
         public static Form1 Form;
         public static NetworkManager NetworkManager;
 
-        public const int DownloadTimeOutSeconds = 100;
+        public const int DownloadTimeOutSeconds = 60;
 
         /// <summary>
         /// The main entry point for the application.
@@ -81,6 +82,15 @@ namespace MultiplayerVideoPlayer
             Application.Run(Form = new Form1(filePath, titleName));
         }
 
+        private static async void StartNetworkManager(string hostName, int port)
+        {
+            while (Form == null || !Form.MediaPlayer.IsPlaying)
+                await Task.Delay(100);
+
+            NetworkManager = new NetworkManager(hostName, port);
+        }
+
+        #region Download Related Methods
         private static async Task<string> DownloadFromYoutube(string link)
         {
             if(!File.Exists("yt-dlp.exe") && !File.Exists("ffmpeg.exe"))
@@ -89,38 +99,62 @@ namespace MultiplayerVideoPlayer
                 return null;
             }
 
-            string arguments = "-f bestvideo*+bestaudio/best --merge-output-format mp4 --write-subs -o temp.mp4 " + link;
+            string tempDir = Path.Combine(Application.StartupPath, "temp");
+            if(Directory.Exists(tempDir))
+                Directory.Delete(tempDir, true);
+            Directory.CreateDirectory(tempDir);
+
+            string arguments = $"-f bestvideo*+bestaudio/best --merge-output-format mp4 --write-subs -P \"{tempDir}\" -o \"%(uploader)s - %(title)s.%(ext)s\" " + link;
             System.Diagnostics.Process.Start(Path.Combine(Application.StartupPath, "yt-dlp.exe"), arguments);
 
             int seconds = 0;
-            while (File.Exists(Path.Combine(Application.StartupPath, "temp.mp4")) == false)
+            string resultFileName = null;
+            while (resultFileName == null)
             {
                 await Task.Delay(1000);
+
                 seconds++;
                 if (seconds > DownloadTimeOutSeconds)
                     return null;
+
+                string[] fileNames = Directory.GetFiles(tempDir);
+                foreach(string fileName in fileNames)
+                {
+                    if (fileName.EndsWith(".mp4"))
+                        resultFileName = fileName;
+                }
             }
+
             await Task.Delay(1000);
 
-            return Path.Combine(Application.StartupPath, "temp.mp4");
+            return resultFileName;
         }
 
         public static void RemoveTempFiles()
         {
-            string[] fileNames = Directory.GetFiles(Application.StartupPath);
-            foreach (string fileName in fileNames)
-            {
-                if (Path.GetFileName(fileName).StartsWith("temp"))
-                    File.Delete(fileName);
-            }
+            string tempDir = Path.Combine(Application.StartupPath, "temp");
+            Directory.Delete(tempDir, true);
         }
 
-        private static async void StartNetworkManager(string hostName, int port)
+        public static void KeepTempFiles()
         {
-            while(Form == null)
-                await Task.Delay(100);
+            string videoPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "MVP Downloads");
+            if (Directory.Exists(videoPath) == false)
+                Directory.CreateDirectory(videoPath);
 
-            NetworkManager = new NetworkManager(hostName, port);
+            string tempDir = Path.Combine(Application.StartupPath, "temp");
+
+            string[] tempFileNames = Directory.GetFiles(tempDir);
+            foreach (string fileName in tempFileNames)
+            {
+                string destFileName = Path.Combine(videoPath, Path.GetFileName(fileName));
+                if (File.Exists(destFileName))
+                    File.Delete(destFileName);
+                File.Move(fileName, destFileName);
+            }
+
+            RemoveTempFiles();
         }
+        #endregion
     }
 }
