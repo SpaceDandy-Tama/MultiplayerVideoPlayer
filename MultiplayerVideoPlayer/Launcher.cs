@@ -29,6 +29,7 @@ namespace MultiplayerVideoPlayer
             {
                 textBox1.Text = clipBoard;
             }
+
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -64,7 +65,5 @@ namespace MultiplayerVideoPlayer
         }
 
         public string[] HandleArgs() => Args;
-
-        
     }
 }
