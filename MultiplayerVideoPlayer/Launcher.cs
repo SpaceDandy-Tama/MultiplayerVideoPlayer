@@ -17,6 +17,7 @@ namespace MultiplayerVideoPlayer
         private string Link => textBox1.Text;
         private string Port => textBox3.Text;
         private string IP => textBox4.Text;
+        private string Quality => comboBox1.Text;
         private string UpdateCommand = "-update";
         private string[] Args;
         private string Filter = "Video Files (*.mkv, *.mp4, *.webm,)|*.mkv;*.mp4;*.webm";
@@ -32,24 +33,35 @@ namespace MultiplayerVideoPlayer
 
         }
 
+        //host
         private void button1_Click(object sender, EventArgs e)
         {
-            Args = new string[2] { Link, Port };
+            Args = new string[3] { Quality, Link, Port };
             Close();
         }
 
+        //join
         private void button2_Click(object sender, EventArgs e)
         {
-            Args = new string[3] { Link, Port, IP };
+            Args = new string[4] { Quality, Link, Port, IP };
             Close();
-        }      
+        }
 
+        //download
+        private void button5_Click(object sender, EventArgs e)
+        {
+            Args = new string[2] { Quality, Link };
+            Close();
+        }
+
+        //update
         private void button3_Click(object sender, EventArgs e)
         {
             Args = new string[1] { UpdateCommand };
             Close();
         }
 
+        //select file
         private void button4_Click(object sender, EventArgs e)
         {
             openFileDialog1.InitialDirectory = Application.StartupPath;

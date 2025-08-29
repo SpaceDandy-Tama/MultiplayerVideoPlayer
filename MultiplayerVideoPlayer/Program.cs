@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Net.Http;
 using LibVLCSharp.Shared;
 using System.Threading;
+using System.Diagnostics;
 
 namespace MultiplayerVideoPlayer
 {
@@ -39,6 +40,8 @@ namespace MultiplayerVideoPlayer
             string filePath = null;
             string hostName = null;
             int port = -1;
+            string quality = null;
+            bool downloadOnly = false;
 
             bool noLinkOrFile = false;
 
@@ -60,7 +63,7 @@ namespace MultiplayerVideoPlayer
                 Form2.ShowDialog();
                 string[] argi = Form2.HandleArgs();
 
-                if(argi == null || argi.Length == 0)
+                if (argi == null || argi.Length == 0)
                     return;
 
                 if (argi[0].Equals("-update"))
@@ -68,17 +71,24 @@ namespace MultiplayerVideoPlayer
                     await Update();
                     return;
                 }
+                else
+                {
+                    quality = argi[0].Remove(argi[0].Length - 1);
+                }
 
-                if (argi[0].StartsWith("http") || File.Exists(argi[0]))
-                    filePath = argi[0];
+                if (argi[1].StartsWith("http") || File.Exists(argi[1]))
+                    filePath = argi[1];
                 else
                     noLinkOrFile = true;
 
-                if (argi.Length < 2 || !int.TryParse(argi[1], out port))
+                if (argi.Length == 2)
+                    downloadOnly = true;
+
+                if (argi.Length < 3 || !int.TryParse(argi[2], out port))
                     port = 9200;
 
-                if (argi.Length > 2)
-                    hostName = argi[2];
+                if (argi.Length > 3)
+                    hostName = argi[3];
             }
             else
             {
@@ -93,12 +103,20 @@ namespace MultiplayerVideoPlayer
                     await Update(delete: true);
                     return;
                 }
-                else if (args[0].StartsWith("http") || File.Exists(args[0]))
-                    filePath = args[0];
+                else
+                {
+                    quality = args[0].Remove(args[0].Length - 1);
+                }
+
+                if (args[1].StartsWith("http") || File.Exists(args[1]))
+                    filePath = args[1];
                 else
                     noLinkOrFile = true;
 
-                if (args.Length < 2 || !int.TryParse(args[1], out port))
+                if (args.Length == 2)
+                    downloadOnly = true;
+
+                if (args.Length < 3 || !int.TryParse(args[2], out port))
                     port = 9200;
 
                 string hostOnlyDir = Path.Combine(Application.StartupPath, "hostonly");
@@ -115,8 +133,8 @@ namespace MultiplayerVideoPlayer
 
                 if (File.Exists(hostOnlyDir))
                     hostName = null;
-                else if (args.Length > 2)
-                    hostName = args[2];
+                else if (args.Length > 3)
+                    hostName = args[3];
                 else if (File.Exists(hostNameDir))
                     hostName = File.ReadAllText(hostNameDir);
             }
@@ -149,7 +167,7 @@ namespace MultiplayerVideoPlayer
             {
                 if (filePath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
                 {
-                    string fileName = await DownloadFromYoutube(filePath);
+                    string fileName = await DownloadFromYoutube(filePath, quality);
                     if (fileName == null)
                         return;
 
@@ -158,7 +176,8 @@ namespace MultiplayerVideoPlayer
                 }
             }
 
-            PlayMedia(filePath, hostName, port, titleName);
+            if(!downloadOnly)
+                PlayMedia(filePath, hostName, port, titleName);
         }
 
         // New method to prevent code repetation,
@@ -243,7 +262,7 @@ namespace MultiplayerVideoPlayer
         #endregion
 
         #region Download Related Methods
-        private static async Task<string> DownloadFromYoutube(string link)
+        private static async Task<string> DownloadFromYoutube(string link, string quality)
         {
             if(!File.Exists("yt-dlp.exe") && !File.Exists("ffmpeg.exe"))
             {
@@ -256,28 +275,39 @@ namespace MultiplayerVideoPlayer
                 Directory.Delete(tempDir, true);
             Directory.CreateDirectory(tempDir);
 
-            string arguments = $"-f bestvideo*+bestaudio/best --merge-output-format mp4 --write-subs --sub-lang \"en-US,en-GB,tr\" -P \"{tempDir}\" -o \"%(uploader)s - %(title)s.%(ext)s\" " + link;
-            System.Diagnostics.Process.Start(Path.Combine(Application.StartupPath, "yt-dlp.exe"), arguments);
+            //--write-subs writes the subs as external subs, doesn't work together with --embed-subs
+            string arguments;
+            if(link.Contains("youtube") || link.Contains("youtu.be"))
+                arguments = $"-f bestvideo[height<={quality}]+bestaudio --merge-output-format mp4 --audio-multistreams --sub-lang \"en-US,en-GB,tr\" --embed-subs --embed-metadata --embed-thumbnail --embed-chapters --write-description -P \"{tempDir}\" -o \"%(uploader)s - %(title)s.%(ext)s\" \"{link}\"";
+            else
+                arguments = $"-f bestvideo+bestaudio/best --merge-output-format mp4 -P \"{tempDir}\" -o \"%(uploader)s - %(title)s.%(ext)s\" \"{link}\"";
 
-            int seconds = 0;
+            System.Diagnostics.Process.Start(Path.Combine(Application.StartupPath, "yt-dlp.exe"), arguments).WaitForExit(int.MaxValue);
+
+            bool fallbackAttempted = false;
             string resultFileName = null;
-            while (resultFileName == null)
+            while (resultFileName == null && !fallbackAttempted)
             {
-                await Task.Delay(1000);
-
-                seconds++;
-                if (seconds > DownloadTimeOutSeconds)
-                    return null;
+                await Task.Delay(100);
 
                 string[] fileNames = Directory.GetFiles(tempDir);
                 foreach(string fileName in fileNames)
                 {
                     if (fileName.EndsWith(".mp4"))
                         resultFileName = fileName;
+                    else if (fileName.EndsWith(".description"))
+                        File.Move(fileName, $"{fileName}.txt");
+                }
+
+                if (resultFileName == null)
+                {
+                    fallbackAttempted = true;
+                    arguments = $"--force-generic-extractor --merge-output-format mp4 -P \"{tempDir}\" -o \"%(uploader)s - %(title)s.%(ext)s\" \"{link}\"";
+                    System.Diagnostics.Process.Start(Path.Combine(Application.StartupPath, "yt-dlp.exe"), arguments).WaitForExit(int.MaxValue);
                 }
             }
 
-            await Task.Delay(1000);
+            await Task.Delay(100);
             TempFilesDownloaded = true;
 
             return resultFileName;
