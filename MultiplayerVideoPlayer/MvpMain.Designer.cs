@@ -50,13 +50,13 @@
             this.videoView1.TabIndex = 0;
             this.videoView1.Text = "videoView1";
             // 
-            // Form1
+            // MvpMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1280, 720);
             this.Controls.Add(this.videoView1);
-            this.Name = "Form1";
+            this.Name = "MvpMain";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Multiplayer Video Player";
             ((System.ComponentModel.ISupportInitialize)(this.videoView1)).EndInit();

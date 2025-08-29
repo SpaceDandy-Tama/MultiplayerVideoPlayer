@@ -2,6 +2,8 @@
 using LiteNetLib.Utils;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
+using System.Windows.Forms;
+using System.IO;
 
 namespace MultiplayerVideoPlayer
 {
@@ -27,17 +29,20 @@ namespace MultiplayerVideoPlayer
         public NetManager Manager;
         public NetDataWriter DataWriter;
 
-        public string SessionKey => Program.Form.FileName;
+        public string SessionKey = "GötLalesi";
         public const int MaxConnections = 10;
 
-        public bool IsInitialized;
+        public static bool IsInitialized;
         public bool IsServer;
         public bool IsClient;
 
-        public NetworkManager(string hostName, int port)
+        public string FilePath;
+
+        public NetworkManager(string hostName, int port, string filePath)
         {
             HostName = hostName;
             Port = port;
+            FilePath = filePath;
 
             Listener = new EventBasedNetListener();
             Manager = new NetManager(Listener);
@@ -119,7 +124,7 @@ namespace MultiplayerVideoPlayer
             if (NetworkDataEvent == NetworkDataEvent.Connected)
             {
                 long time = reader.GetLong();
-                bool isPlaying = false;
+                bool isPlaying = reader.GetBool();
                 if (IsServer)
                 {
 

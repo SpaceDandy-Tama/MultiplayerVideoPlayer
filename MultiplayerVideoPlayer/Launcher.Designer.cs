@@ -47,7 +47,7 @@
             this.textBox3.Name = "textBox3";
             this.textBox3.Size = new System.Drawing.Size(47, 20);
             this.textBox3.TabIndex = 2;
-            this.textBox3.Text = "7243";
+            this.textBox3.Text = "9200";
             // 
             // textBox4
             // 

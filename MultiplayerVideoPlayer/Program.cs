@@ -4,6 +4,8 @@ using System.IO;
 using System.Windows.Forms;
 using System.Collections.Generic;
 using System.Net.Http;
+using LibVLCSharp.Shared;
+using System.Threading;
 
 namespace MultiplayerVideoPlayer
 {
@@ -37,7 +39,7 @@ namespace MultiplayerVideoPlayer
             string hostName = null;
             int port = -1;
 
-            bool quit = false;
+            bool noLinkOrFile = false;
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
@@ -69,10 +71,10 @@ namespace MultiplayerVideoPlayer
                 if (argi[0].StartsWith("http") || File.Exists(argi[0]))
                     filePath = argi[0];
                 else
-                    quit = true;
+                    noLinkOrFile = true;
 
                 if (argi.Length < 2 || !int.TryParse(argi[1], out port))
-                    port = 7243;
+                    port = 9200;
 
                 if (argi.Length > 2)
                     hostName = argi[2];
@@ -93,10 +95,10 @@ namespace MultiplayerVideoPlayer
                 else if (args[0].StartsWith("http") || File.Exists(args[0]))
                     filePath = args[0];
                 else
-                    quit = true;
+                    noLinkOrFile = true;
 
                 if (args.Length < 2 || !int.TryParse(args[1], out port))
-                    port = 7243;
+                    port = 9200;
 
                 string hostOnlyDir = Path.Combine(Application.StartupPath, "hostonly");
                 string hostNameDir = "hostname";
@@ -118,42 +120,66 @@ namespace MultiplayerVideoPlayer
                     hostName = File.ReadAllText(hostNameDir);
             }
 
-            if (quit)
+            if (noLinkOrFile)
             {
-                MessageBox.Show("Nothing to play.", "Wrong Arguments");
-                Application.Exit();
-                return;
+                if (!string.IsNullOrEmpty(hostName))
+                {
+                    DialogResult result = MessageBox.Show("Do you wish to download the video from the host?", "Downloaded Video", MessageBoxButtons.YesNo);
+
+                    if (result == DialogResult.Yes)
+                    {
+                        filePath = await TcpFileReceiver.ReceiveAsync(hostName, port);
+                    }
+                    else
+                    {
+                        MessageBox.Show("Nothing to play.");
+                        Application.Exit();
+                        return;
+                    }
+                }
+                else
+                {
+                    Application.Exit();
+                    return;
+                }
             }
 
             string titleName = Path.GetFileName(filePath);
 
-            if (filePath.StartsWith("http", StringComparison.OrdinalIgnoreCase) || (filePath.Contains("youtube") || filePath.Contains("youtu.be")))
+            if (!string.IsNullOrEmpty(filePath))
             {
-                string fileName = await DownloadFromYoutube(filePath);
-                if (fileName == null)
-                    return;
+                if (filePath.StartsWith("http", StringComparison.OrdinalIgnoreCase) || (filePath.Contains("youtube") || filePath.Contains("youtu.be")))
+                {
+                    string fileName = await DownloadFromYoutube(filePath);
+                    if (fileName == null)
+                        return;
 
-                titleName = filePath;
-                filePath = fileName;
+                    titleName = filePath;
+                    filePath = fileName;
+                }
             }
 
-            PlayMedia(quit, filePath, hostName, port, titleName);
+            PlayMedia(filePath, hostName, port, titleName);
         }
 
         // New method to prevent code repetation,
         // if the program launcher with arguments, regular checks are made if the arguements came from the launcher and they are valid they are directly pushed to the video client
-        public static void PlayMedia(bool quit,string filePath,string hostName,int port,string titleName)
+        public static void PlayMedia(string filePath, string hostName, int port, string titleName)
         {
-            StartNetworkManager(hostName, port);
+            StartNetworkManager(hostName, port, filePath);
+            TcpFileSender.SendAsync(port, filePath);
             Application.Run(Form = new MvpMain(filePath, titleName));
         }
 
-        private static async void StartNetworkManager(string hostName, int port)
+        private static async Task StartNetworkManager(string hostName, int port, string filePath)
         {
-            while (Form == null || !Form.MediaPlayer.IsPlaying)
+            if (NetworkManager.IsInitialized)
+                return;
+
+            while (Form == null ||!Form.MediaPlayer.IsPlaying)
                 await Task.Delay(100);
 
-            NetworkManager = new NetworkManager(hostName, port);
+            NetworkManager = new NetworkManager(hostName, port, filePath);
         }
 
         #region Update Related Methods
@@ -231,7 +257,7 @@ namespace MultiplayerVideoPlayer
                 Directory.Delete(tempDir, true);
             Directory.CreateDirectory(tempDir);
 
-            string arguments = $"-f bestvideo*+bestaudio/best --merge-output-format mp4 --write-subs -P \"{tempDir}\" -o \"%(uploader)s - %(title)s.%(ext)s\" " + link;
+            string arguments = $"-f bestvideo*+bestaudio/best --merge-output-format mp4 --write-subs --sub-lang \"en-US,en-GB,tr\" -P \"{tempDir}\" -o \"%(uploader)s - %(title)s.%(ext)s\" " + link;
             System.Diagnostics.Process.Start(Path.Combine(Application.StartupPath, "yt-dlp.exe"), arguments);
 
             int seconds = 0;

@@ -11,6 +11,7 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using LibVLCSharp.Shared;
 using LibVLCSharp.WinForms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
 
 namespace MultiplayerVideoPlayer
 {
@@ -31,7 +32,7 @@ namespace MultiplayerVideoPlayer
 
         public string TitleBase = "MVP";
         public string Title = "MVP";
-        public string FileName;
+        public static string FileName;
 
         private bool IsFullscreen;
         private Point WindowLocation;
@@ -59,7 +60,7 @@ namespace MultiplayerVideoPlayer
             LibVLC = new LibVLC();
             MediaPlayer = new MediaPlayer(LibVLC);
             VideoView.MediaPlayer = MediaPlayer;
-            Media = new Media(LibVLC, new Uri(filePath));
+            Media = new Media(LibVLC, new Uri(Path.GetFullPath(filePath)));
             MediaPlayer.Play(Media);
             MediaPlayer.Playing += MediaPlayer_Playing;
 
@@ -196,8 +197,14 @@ namespace MultiplayerVideoPlayer
                 CurrentSubtitleTrack = -1;
             MediaPlayer.SetSpu(CurrentSubtitleTrack > -1 ? SubtitleTracks[CurrentSubtitleTrack].Id : CurrentSubtitleTrack);
             string subtitle = "Disabled";
-            if(CurrentSubtitleTrack > -1)
+            if (CurrentSubtitleTrack > -1)
+            {
                 subtitle = SubtitleTracks[CurrentSubtitleTrack].Description + " " + SubtitleTracks[CurrentSubtitleTrack].Language;
+                if (subtitle == " ")
+                {
+                    subtitle = $"Subtitle {CurrentSubtitleTrack}";
+                }
+            }
             MessageBox.Show(subtitle, "Subtitle Track");
         }
 
