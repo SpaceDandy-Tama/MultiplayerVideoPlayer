@@ -13,6 +13,7 @@ namespace MultiplayerVideoPlayer
     {
         public static MvpMain Form;
         public static Launcher Form2;
+        public static Downloader Form3;
         public static NetworkManager NetworkManager;
 
         public const int DownloadTimeOutSeconds = 60;
@@ -124,18 +125,16 @@ namespace MultiplayerVideoPlayer
             {
                 if (!string.IsNullOrEmpty(hostName))
                 {
-                    DialogResult result = MessageBox.Show("Do you wish to download the video from the host?", "Downloaded Video", MessageBoxButtons.YesNo);
-
-                    if (result == DialogResult.Yes)
-                    {
-                        filePath = await TcpFileReceiver.ReceiveAsync(hostName, port);
-                    }
-                    else
-                    {
-                        MessageBox.Show("Nothing to play.");
-                        Application.Exit();
-                        return;
-                    }
+                    TcpFileReceiver.ReceiveAsync(hostName, port);
+                    Form3 = new Downloader();
+                    DialogResult result = Form3.ShowDialog();
+                    //if(result == DialogResult.Yes)
+                    //{
+                    //    Form3.Dispose();
+                    //    Form3 = new Downloader();
+                    //    Form3.Show();
+                    //}
+                    filePath = TcpFileReceiver.SavePath;
                 }
                 else
                 {
@@ -148,7 +147,7 @@ namespace MultiplayerVideoPlayer
 
             if (!string.IsNullOrEmpty(filePath))
             {
-                if (filePath.StartsWith("http", StringComparison.OrdinalIgnoreCase) || (filePath.Contains("youtube") || filePath.Contains("youtu.be")))
+                if (filePath.StartsWith("http", StringComparison.OrdinalIgnoreCase))
                 {
                     string fileName = await DownloadFromYoutube(filePath);
                     if (fileName == null)

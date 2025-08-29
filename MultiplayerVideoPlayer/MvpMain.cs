@@ -292,8 +292,23 @@ namespace MultiplayerVideoPlayer
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            TimeSpan timeSpan = TimeSpan.FromMilliseconds(MediaPlayer.Time);
-            this.Text = $"{Title} | {FileName} - {timeSpan.ToString("hh':'mm':'ss")}";
+            bool receiving = TcpFileReceiver.TotalRead > -1 && TcpFileReceiver.TotalRead < TcpFileReceiver.FileLength;
+            if (receiving)
+            {
+                //long time = MediaPlayer.Time;
+                //MediaPlayer.Play(Media);
+                //MediaPlayer.Time = time;
+
+                string progress = $"{TcpFileReceiver.TotalRead} / {TcpFileReceiver.FileLength} bytes";
+
+                TimeSpan timeSpan = TimeSpan.FromMilliseconds(MediaPlayer.Time);
+                this.Text = $"{Title} | {FileName} - {timeSpan.ToString("hh':'mm':'ss")} - Receiving: {progress}";
+            }
+            else
+            {
+                TimeSpan timeSpan = TimeSpan.FromMilliseconds(MediaPlayer.Time);
+                this.Text = $"{Title} | {FileName} - {timeSpan.ToString("hh':'mm':'ss")}";
+            }
         }
 
         private void MediaPlayer_Playing(object sender, EventArgs e)
