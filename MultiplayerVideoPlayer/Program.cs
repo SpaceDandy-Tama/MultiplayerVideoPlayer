@@ -178,12 +178,7 @@ namespace MultiplayerVideoPlayer
 
             if (downloadOnly)
             {
-                DialogResult result = MessageBox.Show("Do you want to keep this video?", "Downloaded Video", MessageBoxButtons.YesNo);
-
-                if (result == DialogResult.Yes)
-                    Program.KeepTempFiles();
-                else
-                    Program.RemoveTempFiles();
+                Program.KeepTempFiles();
             }
             else
                 PlayMedia(filePath, hostName, port, titleName);

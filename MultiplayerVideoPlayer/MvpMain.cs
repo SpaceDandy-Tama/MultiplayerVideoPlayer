@@ -292,6 +292,10 @@ namespace MultiplayerVideoPlayer
 
         private void timer1_Tick(object sender, EventArgs e)
         {
+            TimeSpan timeSpan = TimeSpan.FromMilliseconds(MediaPlayer.Time);
+            TimeSpan durationSpan = TimeSpan.FromMilliseconds(MediaPlayer.Media.Duration);
+            this.Text = $"{Title} | {FileName} - {timeSpan.ToString("hh':'mm':'ss")}/{durationSpan.ToString("hh':'mm':'ss")}";
+
             bool receiving = TcpFileReceiver.TotalRead > -1 && TcpFileReceiver.TotalRead < TcpFileReceiver.FileLength;
             if (receiving)
             {
@@ -300,14 +304,7 @@ namespace MultiplayerVideoPlayer
                 //MediaPlayer.Time = time;
 
                 string progress = $"{TcpFileReceiver.TotalRead} / {TcpFileReceiver.FileLength} bytes";
-
-                TimeSpan timeSpan = TimeSpan.FromMilliseconds(MediaPlayer.Time);
-                this.Text = $"{Title} | {FileName} - {timeSpan.ToString("hh':'mm':'ss")} - Receiving: {progress}";
-            }
-            else
-            {
-                TimeSpan timeSpan = TimeSpan.FromMilliseconds(MediaPlayer.Time);
-                this.Text = $"{Title} | {FileName} - {timeSpan.ToString("hh':'mm':'ss")}";
+                this.Text += $" - Receiving: {progress}";
             }
         }
 
