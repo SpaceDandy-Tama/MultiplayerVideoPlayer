@@ -249,6 +249,11 @@ namespace MultiplayerVideoPlayer
                 SubtitleCycle();
             else if (e.KeyCode == Keys.A)
                 AudioCycle();
+            else if (e.KeyCode == Keys.Escape)
+            {
+                if(IsFullscreen)
+                    FullscreenToggle();
+            }
         }
 
         private void Common_KeyUp(object sender, KeyEventArgs e)
