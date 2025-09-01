@@ -16,7 +16,7 @@ namespace MultiplayerVideoPlayer
     {
         private string Link => textBox1.Text;
         private string Port => textBox3.Text;
-        private string IP => textBox4.Text;
+        private string IP => comboBox2.Text;
         private string Quality => comboBox1.Text;
         private string UpdateCommand = "-update";
         private string[] Args;
