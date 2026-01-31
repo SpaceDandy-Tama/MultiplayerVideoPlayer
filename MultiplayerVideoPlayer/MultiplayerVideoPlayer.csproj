@@ -15,6 +15,21 @@
     <Deterministic>true</Deterministic>
     <NuGetPackageImportStamp>
     </NuGetPackageImportStamp>
+    <PublishUrl>publish\</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>false</UpdateEnabled>
+    <UpdateMode>Foreground</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <ApplicationRevision>0</ApplicationRevision>
+    <ApplicationVersion>1.0.0.%2a</ApplicationVersion>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -56,6 +71,9 @@
     <PlatformTarget>ARM64</PlatformTarget>
     <LangVersion>8.0</LangVersion>
     <ErrorReport>prompt</ErrorReport>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>MVP.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="LibVLCSharp, Version=3.9.4.0, Culture=neutral, processorArchitecture=MSIL">
@@ -142,12 +160,19 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\NetCompression\NetCompression-Test\NetCompression-Test\NetCompression.cs">
+      <Link>NetCompression.cs</Link>
+    </Compile>
+    <Compile Include="..\TINYSharp\TINY\Tiny.cs">
+      <Link>Tiny.cs</Link>
+    </Compile>
     <Compile Include="Downloader.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Downloader.Designer.cs">
       <DependentUpon>Downloader.cs</DependentUpon>
     </Compile>
+    <Compile Include="FileManifest.cs" />
     <Compile Include="Launcher.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -197,6 +222,21 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="MVP.ico" />
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.7.2 %28x86 and x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <Target Name="EnsureNuGetPackageBuildImports" BeforeTargets="PrepareForBuild">

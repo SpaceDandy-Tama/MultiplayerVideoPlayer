@@ -1,4 +1,7 @@
-﻿using System;
+﻿using LibVLCSharp.Shared;
+using LibVLCSharp.WinForms;
+using MultiplayerVideoPlayer.Properties;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -9,8 +12,6 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using LibVLCSharp.Shared;
-using LibVLCSharp.WinForms;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
 
 namespace MultiplayerVideoPlayer
@@ -65,6 +66,8 @@ namespace MultiplayerVideoPlayer
             MediaPlayer.Playing += MediaPlayer_Playing;
 
             this.Text = $"{Title} - {FileName}";
+
+            this.Icon = Program.Icon;
         }
 
         #region Controls

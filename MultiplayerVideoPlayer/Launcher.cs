@@ -1,14 +1,15 @@
-﻿using System;
+﻿using MultiplayerVideoPlayer.Properties;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
-using System.IO;
-using System.Windows.Forms;
 using System.Threading;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace MultiplayerVideoPlayer
 {
@@ -18,6 +19,7 @@ namespace MultiplayerVideoPlayer
         private string Port => textBox3.Text;
         private string IP => comboBox2.Text;
         private string Quality => comboBox1.Text;
+        private bool Save2Temp => checkBox1.Checked;
         private string UpdateCommand = "-update";
         private string[] Args;
         private string Filter = "Video Files (*.mkv, *.mp4, *.webm,)|*.mkv;*.mp4;*.webm";
@@ -31,6 +33,7 @@ namespace MultiplayerVideoPlayer
                 textBox1.Text = clipBoard;
             }
 
+            this.Icon = Program.Icon;
         }
 
         //host
@@ -50,6 +53,7 @@ namespace MultiplayerVideoPlayer
         //download
         private void button5_Click(object sender, EventArgs e)
         {
+            Program.Save2Temp = Save2Temp;
             Args = new string[2] { Quality, Link };
             Close();
         }

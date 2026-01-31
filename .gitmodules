@@ -1,0 +1,6 @@
+[submodule "NetCompression"]
+	path = NetCompression
+	url = git@github.com:SpaceDandy-Tama/NetCompression.git
+[submodule "TINYSharp"]
+	path = TINYSharp
+	url = git@github.com:SpaceDandy-Tama/TINYSharp.git

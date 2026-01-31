@@ -1,12 +1,16 @@
 ﻿using System;
-using System.Threading.Tasks;
-using System.IO;
-using System.Windows.Forms;
 using System.Collections.Generic;
-using System.Net.Http;
-using LibVLCSharp.Shared;
-using System.Threading;
 using System.Diagnostics;
+using System.Drawing;
+using System.IO;
+using System.IO.Compression;
+using System.Net;
+using System.Net.Http;
+using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace MultiplayerVideoPlayer
 {
@@ -20,6 +24,14 @@ namespace MultiplayerVideoPlayer
         public const int DownloadTimeOutSeconds = 60;
         public static bool TempFilesDownloaded = false;
 
+        public static bool Save2Temp = false;
+
+        static readonly byte[] ManifestMagic = { 0x4D, 0x41, 0x4E, 0x49, 0x46, 0x45, 0x53, 0x54 }; // "MANIFEST"
+
+        public static readonly Icon Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath);
+
+        public static HttpClient HttpClient = null;
+
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
@@ -29,14 +41,6 @@ namespace MultiplayerVideoPlayer
         
         static async Task OldMain(string[] args)
         {
-            /*
-            if(ValidateFiles() == false)
-            {
-                await Update();
-                return;
-            }
-            */
-
             string filePath = null;
             string hostName = null;
             int port = -1;
@@ -59,6 +63,14 @@ namespace MultiplayerVideoPlayer
                  * if there is a 3rd arguements sets as client with the ip on 3rd argument as host                 
                 */
 
+                if (!ValidateFiles(false))
+                {
+                    await Bootstrap();
+                    Application.Restart();
+                    Environment.Exit(0);
+                    return;
+                }
+
                 Form2 = new Launcher();
                 Form2.ShowDialog();
                 string[] argi = Form2.HandleArgs();
@@ -66,9 +78,19 @@ namespace MultiplayerVideoPlayer
                 if (argi == null || argi.Length == 0)
                     return;
 
-                if (argi[0].Equals("-update"))
+                if (argi[0].Equals("-generateManifest"))
                 {
-                    await Update();
+                    GenerateManifest();
+                    return;
+                }
+                else if (argi[0].Equals("-dumpManifest"))
+                {
+                    DumpManifest();
+                    return;
+                }
+                else if (argi[0].Equals("-bootstrap"))
+                {
+                    await Bootstrap();
                     return;
                 }
                 else
@@ -92,15 +114,19 @@ namespace MultiplayerVideoPlayer
             }
             else
             {
-                if (args[0].Equals("-update"))
+                if (args[0].Equals("-generateManifest"))
                 {
-                    await Update();
+                    GenerateManifest();
                     return;
                 }
-                else if (args[0].Equals("-deleteUpdater"))
+                else if (args[0].Equals("-dumpManifest"))
                 {
-                    await Task.Delay(1000);
-                    await Update(delete: true);
+                    DumpManifest();
+                    return;
+                }
+                else if (args[0].Equals("-bootstrap"))
+                {
+                    await Bootstrap();
                     return;
                 }
                 else
@@ -178,7 +204,8 @@ namespace MultiplayerVideoPlayer
 
             if (downloadOnly)
             {
-                Program.KeepTempFiles();
+                if(!Program.Save2Temp)
+                    Program.KeepTempFiles();
             }
             else
                 PlayMedia(filePath, hostName, port, titleName);
@@ -205,63 +232,267 @@ namespace MultiplayerVideoPlayer
         }
 
         #region Update Related Methods
-        private static bool ValidateFiles()
+        private static bool HasManifestMagic()
         {
-            //Checksum later?
-            string[] requiredFiles = new string[]
-            {
-                "LibVLCSharp.dll",
-                "LibVLCSharp.WinForms.dll",
-                "LiteNetLib.dll",
-                "MultiplayerVideoPlayer.exe",
-                "System.Buffers.dll",
-                "System.Memory.dll",
-                "System.Numerics.Vectors.dll",
-                "System.Runtime.CompilerServices.Unsafe.dll",
-                "Xamarin.Forms.Core.dll",
-                "Xamarin.Forms.Platform.dll",
-                "Xamarin.Forms.Xaml.dll"
-            };
-            string[] requiredDirs = new string[]
-            {
-                "libvlc",
-            };
+            string exePath = Application.ExecutablePath;
 
-            foreach(string requiredFile in requiredFiles)
+            FileInfo fi = new FileInfo(exePath);
+
+            // File too small to contain magic
+            if (fi.Length < ManifestMagic.Length)
+                return false;
+
+            byte[] tail = new byte[ManifestMagic.Length];
+
+            using (FileStream fs = new FileStream(exePath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
-                if (!File.Exists(requiredFile))
-                    return false;
+                fs.Seek(-ManifestMagic.Length, SeekOrigin.End);
+                fs.Read(tail, 0, tail.Length);
             }
-            foreach(string requiredDir in requiredDirs)
+
+            for (int i = 0; i < ManifestMagic.Length; i++)
             {
-                if (!Directory.Exists(requiredDir))
+                if (tail[i] != ManifestMagic[i])
                     return false;
             }
 
             return true;
         }
-        private static async Task Update(bool delete = false)
+        private static void RemoveManifest()
         {
-            string url = "https://spacewardgame.com/temp/MVP/MVPUpdater.exe";
-            string path = Path.Combine(Application.StartupPath, "MVPUpdater.exe");
-
-            if (File.Exists(path))
-                File.Delete(path);
-
-            if (delete)
+            if (!HasManifestMagic())
                 return;
 
-            HttpClient httpClient = new HttpClient();
+            string exePath = Application.ExecutablePath;
 
-            using (Stream stream = await httpClient.GetStreamAsync(url))
+            using (FileStream fs = new FileStream(exePath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read))
             {
-                using (FileStream fileStream = new FileStream(path, FileMode.CreateNew))
+                using (BinaryReader br = new BinaryReader(fs))
                 {
-                    await stream.CopyToAsync(fileStream);
+                    // Move to the int just before the magic
+                    fs.Seek(-(ManifestMagic.Length + sizeof(int)), SeekOrigin.End);
+
+                    int manifestLength = br.ReadInt32();
+
+                    // Truncate: remove [manifest][length][magic]
+                    long newLength = fs.Length - ManifestMagic.Length - sizeof(int) - manifestLength;
+
+                    fs.SetLength(newLength);
+                }
+            }
+        }
+        private static string GetChecksum(string filePath)
+        {
+            using (FileStream fs = File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                using (SHA256 sha = SHA256.Create())
+                {
+                    byte[] hashBytes = sha.ComputeHash(fs);
+                    return BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+                }
+            }
+        }
+        private static void GenerateManifest()
+        {
+            if (HasManifestMagic())
+                RemoveManifest();
+
+            //This is needed because Path.GetRelativePath does not exist in .Net Framework 4.7.2 (.net standard 2.0)
+            Func<string, string, string> GetRelativePath = (filespec, folder) =>
+            {
+                Uri pathUri = new Uri(filespec);
+
+                if (!folder.EndsWith(Path.DirectorySeparatorChar.ToString()))
+                    folder += Path.DirectorySeparatorChar;
+
+                Uri folderUri = new Uri(folder);
+                Uri relativeUri = folderUri.MakeRelativeUri(pathUri);
+
+                string relativePath = Uri.UnescapeDataString(relativeUri.ToString());
+                return relativePath.Replace('/', Path.DirectorySeparatorChar);
+            };
+
+            string workingDir = Directory.GetCurrentDirectory();
+            string exePath = Application.ExecutablePath;
+
+            FileManifest manifest = new FileManifest();
+            foreach (string filePath in Directory.GetFiles(workingDir, "*", SearchOption.AllDirectories))
+            {
+                string relativePath = GetRelativePath(filePath, workingDir);
+                manifest.Files[relativePath] = GetChecksum(filePath);
+            }
+
+            byte[] manifestBytes = Encoding.UTF8.GetBytes(Tiny.Serializer.Serialize(manifest));
+
+            NetCompression.LoggingType = LoggingType.None;
+            MemoryStream ms = NetCompression.Compress(manifestBytes, CompressionLevel.Optimal, CompressionAlgorithm.Deflate);
+            byte[] compressedManifestBytes = ms.ToArray();
+            ms.Dispose();
+
+            string copyPath = Path.Combine(workingDir, Path.GetFileNameWithoutExtension(exePath) + ".WithManifest.exe");
+            File.Copy(exePath, copyPath, true);
+
+            using (FileStream fs = new FileStream(copyPath, FileMode.Append, FileAccess.Write))
+            {
+                using (BinaryWriter bw = new BinaryWriter(fs))
+                {
+                    bw.Write(compressedManifestBytes);
+                    bw.Write(compressedManifestBytes.Length);
+                    bw.Write(ManifestMagic);
+                }
+            }
+        }
+        private static string ReadManifest()
+        {
+            if (!HasManifestMagic())
+            {
+                return null;
+            }
+
+            string exePath = Application.ExecutablePath;
+
+            byte[] compressedManifestBytes;
+
+            using (FileStream fs = new FileStream(exePath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                using (BinaryReader br = new BinaryReader(fs))
+                {
+                    // Seek to the int just before the magic
+                    fs.Seek(-(ManifestMagic.Length + sizeof(int)), SeekOrigin.End);
+
+                    int manifestLength = br.ReadInt32();
+
+                    // Seek to the start of the manifest
+                    fs.Seek(-(ManifestMagic.Length + sizeof(int) + manifestLength), SeekOrigin.End);
+
+                    compressedManifestBytes = br.ReadBytes(manifestLength);
                 }
             }
 
-            System.Diagnostics.Process.Start(path);
+            MemoryStream manifestStream = NetCompression.Decompress(compressedManifestBytes, CompressionAlgorithm.Deflate);
+            byte[] manifestBytes = manifestStream.ToArray();
+            manifestStream.Dispose();
+            return Encoding.UTF8.GetString(manifestBytes);
+        }
+        private static void DumpManifest()
+        {
+            if (!HasManifestMagic())
+            {
+                MessageBox.Show("No manifest embedded in the executable", Application.ProductName);
+                return;
+            }
+
+            string tinyManifest = ReadManifest();
+
+            if (tinyManifest == null)
+                return;
+
+            string workingDir = Directory.GetCurrentDirectory();
+            string manifestPath = Path.Combine(workingDir, "manifest.tiny");
+
+            File.WriteAllText(manifestPath, tinyManifest);
+        }
+        private static bool ValidateFiles(bool performChecksum = true)
+        {
+            string exePath = Application.ExecutablePath;
+
+            FileManifest manifest = Tiny.Deserializer.Deserialize<FileManifest>(ReadManifest());
+
+            foreach (KeyValuePair<string, string> pair in manifest.Files)
+            {
+                if (!File.Exists(pair.Key))
+                    return false;
+
+                if (!performChecksum || pair.Key.Equals(Path.GetFileName(exePath), StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                if (GetChecksum(pair.Key) != pair.Value)
+                    return false;
+            }
+
+            return true;
+        }
+        private static async Task DownloadFileAsync(string url, string destinationPath = null)
+        {
+            if(HttpClient == null)
+                HttpClient = new HttpClient();
+
+            using (HttpResponseMessage response = await HttpClient.GetAsync(url))
+            {
+                response.EnsureSuccessStatusCode();
+
+                if (destinationPath == null)
+                {
+                    string workingDir = Directory.GetCurrentDirectory();
+                    destinationPath = Path.Combine(workingDir, Path.GetFileName(url));
+                }
+
+                using (FileStream fs = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None))
+                {
+                    await response.Content.CopyToAsync(fs);
+                }
+            }
+        }
+        private static async Task FetchDependencies(Process console)
+        {
+            console.StandardInput.WriteLine("tinydl.exe https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe");
+
+            string workingDir = Directory.GetCurrentDirectory();
+
+            //THIS IS PAINFULLY SLOW SO WE FETCH VERSION AND BUILD LINK TO GYAN.DEV'S GITHUB MIRROR
+            string downloadLink = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full.7z";
+            string versionLink = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full.7z.ver";
+            //string checksumLink = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-full.7z.sha256";
+
+            string version;
+            //string checksum;
+            //ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
+            using (WebClient wc = new WebClient())
+            {
+                version = wc.DownloadString(versionLink).Trim();
+                //checksum = wc.DownloadString(checksumLink).Trim();
+            }
+
+            downloadLink = $"https://github.com/GyanD/codexffmpeg/releases/latest/download/ffmpeg-{version}-full_build.7z";
+
+            console.StandardInput.WriteLine($"tinydl.exe {downloadLink} \"%TEMP%\\ffmpeg.7z\"");
+            console.StandardInput.WriteLine("7zr.exe x \"%TEMP%\\ffmpeg.7z\" -o\"%TEMP%\" -y");
+            console.StandardInput.WriteLine($"for /d %D in (\"%TEMP%\\ffmpeg-*\") do copy /Y \"%D\\bin\\ffmpeg.exe\" \"{workingDir}\\ffmpeg.exe\"");
+        }
+        private static async Task FetchCoreFiles(Process console)
+        {
+            string workingDir = Directory.GetCurrentDirectory();
+            string fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
+
+            console.StandardInput.WriteLine($"tinydl.exe https://spacewardgame.com/temp/mvp/MVPv{fileVersion}.7z \"%TEMP%\\MVPv{fileVersion}.7z\"");
+            console.StandardInput.WriteLine($"7zr.exe x \"%TEMP%\\MVPv{fileVersion}.7z\" -o\"%TEMP%\\MVPv{fileVersion}\" -y");
+            console.StandardInput.WriteLine($"xcopy /C/H/R/S/Y/I \"%TEMP%\\MVPv{fileVersion}\\*\" \"{workingDir}\"");
+        }
+        private static async Task Bootstrap()
+        {
+            await DownloadFileAsync("https://spacewardgame.com/temp/bin/tinydl.exe");
+
+            ProcessStartInfo psi = new ProcessStartInfo
+            {
+                FileName = "cmd.exe",
+                Arguments = "/K", // keep open
+                UseShellExecute = false,
+                RedirectStandardInput = true
+            };
+
+            Process cmd = Process.Start(psi);
+
+            string workingDir = Directory.GetCurrentDirectory();
+            cmd.StandardInput.WriteLine("cd " + workingDir);
+            cmd.StandardInput.WriteLine("tinydl.exe https://www.7-zip.org/a/7zr.exe");
+
+            await FetchDependencies(cmd);
+            await FetchCoreFiles(cmd);
+
+            HttpClient.Dispose();
+            cmd.StandardInput.WriteLine("exit");
+            cmd.WaitForExit();
+            cmd.Dispose();
         }
         #endregion
 

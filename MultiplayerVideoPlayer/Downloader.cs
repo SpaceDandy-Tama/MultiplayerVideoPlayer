@@ -1,4 +1,5 @@
-﻿using System;
+﻿using MultiplayerVideoPlayer.Properties;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -19,6 +20,8 @@ namespace MultiplayerVideoPlayer
             InitializeComponent();
 
             progressBar1.Value = 0;
+
+            this.Icon = Program.Icon;
         }
 
         private void timer1_Tick(object sender, EventArgs e)
