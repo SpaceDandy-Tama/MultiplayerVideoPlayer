@@ -464,7 +464,8 @@ namespace MultiplayerVideoPlayer
             string workingDir = Directory.GetCurrentDirectory();
             string fileVersion = FileVersionInfo.GetVersionInfo(Assembly.GetExecutingAssembly().Location).FileVersion;
 
-            console.StandardInput.WriteLine($"tinydl.exe https://spacewardgame.com/temp/mvp/MVPv{fileVersion}.7z \"%TEMP%\\MVPv{fileVersion}.7z\"");
+            //console.StandardInput.WriteLine($"tinydl.exe https://spacewardgame.com/temp/mvp/MVPv{fileVersion}.7z \"%TEMP%\\MVPv{fileVersion}.7z\"");
+            console.StandardInput.WriteLine($"tinydl.exe https://github.com/SpaceDandy-Tama/MultiplayerVideoPlayer/releases/download/v{fileVersion}/MVP_coreFiles.7z \"%TEMP%\\MVPv{fileVersion}.7z\"");
             console.StandardInput.WriteLine($"7zr.exe x \"%TEMP%\\MVPv{fileVersion}.7z\" -o\"%TEMP%\\MVPv{fileVersion}\" -y");
             console.StandardInput.WriteLine($"xcopy /C/H/R/S/Y/I \"%TEMP%\\MVPv{fileVersion}\\*\" \"{workingDir}\"");
         }
