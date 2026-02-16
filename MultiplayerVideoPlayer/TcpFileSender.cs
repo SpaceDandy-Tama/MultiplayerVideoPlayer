@@ -61,7 +61,7 @@ namespace MultiplayerVideoPlayer
                     totalBytes += bytesRead;
                     await networkStream.WriteAsync(buffer, 0, bytesRead);
 #if DEBUG
-                    await Task.Delay(50);
+                    await Task.Delay(1);
 #endif
                 }
             }

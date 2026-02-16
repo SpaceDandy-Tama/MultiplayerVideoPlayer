@@ -178,10 +178,9 @@ namespace MultiplayerVideoPlayer
         #region Actions
         public void Pause(long time)
         {
-            if (!MediaPlayer.IsPlaying)
-                return;
+            if (MediaPlayer.IsPlaying)
+                MediaPlayer.Pause();
 
-            MediaPlayer.Pause();
             MediaPlayer.Time = time;
             Program.Form.ShowOverlayText($"Pause at {Program.Form.FormatMilliseconds(time)}");
         }
@@ -195,10 +194,12 @@ namespace MultiplayerVideoPlayer
 
         public void Continue(long time)
         {
+            MediaPlayer.Time = time;
+
+            Program.Form.ShowOverlayText($"Play at {Program.Form.FormatMilliseconds(time)}");
+
             if (MediaPlayer.IsPlaying)
                 return;
-
-            MediaPlayer.Time = time;
 
             if (MediaPlayer.WillPlay)
                 MediaPlayer.Play();
@@ -207,8 +208,6 @@ namespace MultiplayerVideoPlayer
                 MediaPlayer.Play(Program.Form.Media);
                 MediaPlayer.Time = time;
             }
-
-            Program.Form.ShowOverlayText($"Play at {Program.Form.FormatMilliseconds(time)}");
         }
         public void SendContinue(long time)
         {

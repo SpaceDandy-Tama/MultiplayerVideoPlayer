@@ -79,67 +79,65 @@ namespace MultiplayerVideoPlayer
         #region Controls
         private void PlayPauseToggle()
         {
-            if (!IsNetworked || (IsNetworked && IsAuthoritative))
+            if (MediaPlayer.IsPlaying)
             {
-                if (MediaPlayer.IsPlaying)
-                {
+                if (!IsNetworked || IsAuthoritative)
                     MediaPlayer.Pause();
-                    ShowOverlayText($"Pause");
-                }
-                else if (MediaPlayer.WillPlay)
-                {
+                if (IsNetworked)
+                    NetworkManager.SendPause(MediaPlayer.Time);
+                if (!IsNetworked || IsAuthoritative)
+                    ShowOverlayText("Pause");
+            }
+            else if(MediaPlayer.WillPlay)
+            {
+                if (!IsNetworked || IsAuthoritative)
                     MediaPlayer.Play();
-                    ShowOverlayText($"Play");
-                }
-                else
+                if (IsNetworked)
+                    NetworkManager.SendContinue(MediaPlayer.Time);
+                if (!IsNetworked || IsAuthoritative)
+                    ShowOverlayText("Play");
+            }
+            else
+            {
+                if (!IsNetworked || IsAuthoritative)
                 {
                     long time = MediaPlayer.Time;
                     MediaPlayer.Play(Media);
                     MediaPlayer.Time = time;
-                    ShowOverlayText($"Play: {FormatMilliseconds(MediaPlayer.Time)}");
                 }
-            }
-
-            if (IsNetworked)
-            {
-                if (MediaPlayer.IsPlaying)
-                    NetworkManager.SendPause(MediaPlayer.Time);
-                else
+                if (IsNetworked)
                     NetworkManager.SendContinue(MediaPlayer.Time);
+                if (!IsNetworked || IsAuthoritative)
+                    ShowOverlayText($"Play: {FormatMilliseconds(MediaPlayer.Time)}");
             }
         }
         
         private void Skip(long milliseconds)
         {
-            //Time is in milliseconds
-            //Position is normalized
-            if (!IsNetworked || (IsNetworked && IsAuthoritative))
-            {
-                MediaPlayer.Time += milliseconds;
-                ShowOverlayText($"Skip {milliseconds} ms");
-            }
+            if (milliseconds < 0)
+                milliseconds = Math.Max(milliseconds, -MediaPlayer.Time);
+            else
+                milliseconds = Math.Min(milliseconds, MediaPlayer.Media.Duration - MediaPlayer.Time);
 
-            if (IsNetworked)
+            if (!IsNetworked || IsAuthoritative)
+                MediaPlayer.Time += milliseconds;
+            if(IsNetworked)
             {
                 if (MediaPlayer.IsPlaying)
-                {
                     NetworkManager.SendSkip(milliseconds);
-                }
                 else
-                {
                     NetworkManager.SendSeek(NetworkManager.IsServer ? MediaPlayer.Time : MediaPlayer.Time + milliseconds);
-                }
+            }
+            if (!IsNetworked || IsAuthoritative)
+            {
+                ShowOverlayText($"Skip {milliseconds} ms");
             }
         }
 
         private void ChapterNext()
         {
-            if (!IsNetworked || (IsNetworked && IsAuthoritative))
-            {
+            if (!IsNetworked || IsAuthoritative)
                 MediaPlayer.NextChapter();
-                ShowOverlayText(GetChapterOverlayText(MediaPlayer.Chapter));
-            }
-
             if (IsNetworked)
             {
                 int chapter = MediaPlayer.Chapter;
@@ -151,16 +149,16 @@ namespace MultiplayerVideoPlayer
                 }
                 NetworkManager.SendChapterSkip(chapter);
             }
+            if (!IsNetworked || IsAuthoritative)
+            {
+                ShowOverlayText(GetChapterOverlayText(MediaPlayer.Chapter));
+            }
         }
 
         private void ChapterPrevious()
         {
-            if (!IsNetworked || (IsNetworked && IsAuthoritative))
-            {
+            if (!IsNetworked || IsAuthoritative)
                 MediaPlayer.PreviousChapter();
-                ShowOverlayText(GetChapterOverlayText(MediaPlayer.Chapter));
-            }
-
             if (IsNetworked)
             {
                 int chapter = MediaPlayer.Chapter;
@@ -171,6 +169,10 @@ namespace MultiplayerVideoPlayer
                         chapter = 0;
                 }
                 NetworkManager.SendChapterSkip(chapter);
+            }
+            if (!IsNetworked || IsAuthoritative)
+            {
+                ShowOverlayText(GetChapterOverlayText(MediaPlayer.Chapter));
             }
         }
 
@@ -398,9 +400,15 @@ namespace MultiplayerVideoPlayer
 
         public void ShowOverlayText(string text)
         {
+            if (InvokeRequired)
+            {
+                BeginInvoke(new Action(() => ShowOverlayText(text)));
+                return;
+            }
+
+            timer2.Stop();
             fileNameText.Text = text;
             fileNameText.Show();
-            timer2.Stop();
             timer2.Start();
         }
 

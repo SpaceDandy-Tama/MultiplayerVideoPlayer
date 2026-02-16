@@ -63,6 +63,7 @@ namespace MultiplayerVideoPlayer
                  * if there is a 3rd arguements sets as client with the ip on 3rd argument as host                 
                 */
 
+#if !DEBUG
                 if (!ValidateFiles(false))
                 {
                     await Bootstrap();
@@ -70,6 +71,7 @@ namespace MultiplayerVideoPlayer
                     Environment.Exit(0);
                     return;
                 }
+#endif
 
                 Form2 = new Launcher();
                 Form2.ShowDialog();
