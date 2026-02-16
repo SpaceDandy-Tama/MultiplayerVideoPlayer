@@ -1,4 +1,5 @@
 ﻿using LibVLCSharp.Shared;
+using LibVLCSharp.Shared.Structures;
 using LibVLCSharp.WinForms;
 using MultiplayerVideoPlayer.Properties;
 using System;
@@ -12,6 +13,8 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Xml.Linq;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.TaskbarClock;
 using static System.Windows.Forms.VisualStyles.VisualStyleElement.TrackBar;
 
 namespace MultiplayerVideoPlayer
@@ -26,6 +29,7 @@ namespace MultiplayerVideoPlayer
         public LibVLC LibVLC;
         public MediaPlayer MediaPlayer;
         public Media Media;
+        public ChapterDescription[] Chapters;
         public MediaTrack[] AudioTracks;
         public MediaTrack[] SubtitleTracks;
         public int CurrentAudioTrack;
@@ -68,6 +72,8 @@ namespace MultiplayerVideoPlayer
             this.Text = $"{Title} - {FileName}";
 
             this.Icon = Program.Icon;
+
+            ShowOverlayText(FileName);
         }
 
         #region Controls
@@ -76,14 +82,21 @@ namespace MultiplayerVideoPlayer
             if (!IsNetworked || (IsNetworked && IsAuthoritative))
             {
                 if (MediaPlayer.IsPlaying)
+                {
                     MediaPlayer.Pause();
+                    ShowOverlayText($"Pause");
+                }
                 else if (MediaPlayer.WillPlay)
+                {
                     MediaPlayer.Play();
+                    ShowOverlayText($"Play");
+                }
                 else
                 {
                     long time = MediaPlayer.Time;
                     MediaPlayer.Play(Media);
                     MediaPlayer.Time = time;
+                    ShowOverlayText($"Play: {FormatMilliseconds(MediaPlayer.Time)}");
                 }
             }
 
@@ -101,7 +114,10 @@ namespace MultiplayerVideoPlayer
             //Time is in milliseconds
             //Position is normalized
             if (!IsNetworked || (IsNetworked && IsAuthoritative))
+            {
                 MediaPlayer.Time += milliseconds;
+                ShowOverlayText($"Skip {milliseconds} ms");
+            }
 
             if (IsNetworked)
             {
@@ -119,7 +135,10 @@ namespace MultiplayerVideoPlayer
         private void ChapterNext()
         {
             if (!IsNetworked || (IsNetworked && IsAuthoritative))
+            {
                 MediaPlayer.NextChapter();
+                ShowOverlayText(GetChapterOverlayText(MediaPlayer.Chapter));
+            }
 
             if (IsNetworked)
             {
@@ -137,7 +156,10 @@ namespace MultiplayerVideoPlayer
         private void ChapterPrevious()
         {
             if (!IsNetworked || (IsNetworked && IsAuthoritative))
+            {
                 MediaPlayer.PreviousChapter();
+                ShowOverlayText(GetChapterOverlayText(MediaPlayer.Chapter));
+            }
 
             if (IsNetworked)
             {
@@ -155,19 +177,21 @@ namespace MultiplayerVideoPlayer
         private void VolumeUp()
         {
             int volume = MediaPlayer.Volume;
-            volume += 10;
+            volume += 5;
             if (volume > 100)
                 volume = 100;
             MediaPlayer.Volume = volume;
+            ShowOverlayText($"Vol: {volume}%");
         }
 
         private void VolumeDown()
         {
             int volume = MediaPlayer.Volume;
-            volume -= 10;
+            volume -= 5;
             if (volume < 0)
                 volume = 0;
             MediaPlayer.Volume = volume;
+            ShowOverlayText($"Vol: {volume}%");
         }
 
         private void FullscreenToggle()
@@ -202,13 +226,13 @@ namespace MultiplayerVideoPlayer
             string subtitle = "Disabled";
             if (CurrentSubtitleTrack > -1)
             {
-                subtitle = SubtitleTracks[CurrentSubtitleTrack].Description + " " + SubtitleTracks[CurrentSubtitleTrack].Language;
+                subtitle = $"{SubtitleTracks[CurrentSubtitleTrack].Description} [{SubtitleTracks[CurrentSubtitleTrack].Language}]";
                 if (subtitle == " ")
                 {
                     subtitle = $"Subtitle {CurrentSubtitleTrack}";
                 }
             }
-            MessageBox.Show(subtitle, "Subtitle Track");
+            ShowOverlayText($"Subtitle: {subtitle}");
         }
 
         private void AudioCycle()
@@ -217,8 +241,8 @@ namespace MultiplayerVideoPlayer
             if (CurrentAudioTrack >= AudioTracks.Length)
                 CurrentAudioTrack = 0;
             MediaPlayer.SetAudioTrack(AudioTracks[CurrentAudioTrack].Id);
-            string subtitle = AudioTracks[CurrentAudioTrack].Description + " " + AudioTracks[CurrentAudioTrack].Language;
-            MessageBox.Show(subtitle, "Audio Track");
+            string subtitle = $"{AudioTracks[CurrentAudioTrack].Description} [{AudioTracks[CurrentAudioTrack].Language}]";
+            ShowOverlayText($"Audio: {subtitle}");
         }
         #endregion
 
@@ -256,6 +280,10 @@ namespace MultiplayerVideoPlayer
             {
                 if(IsFullscreen)
                     FullscreenToggle();
+            }
+            else if (e.KeyCode == Keys.N)
+            {
+                ShowOverlayText(FileName);
             }
         }
 
@@ -316,6 +344,11 @@ namespace MultiplayerVideoPlayer
             }
         }
 
+        private void timer2_Tick(object sender, EventArgs e)
+        {
+            HideOverlayText();
+        }
+
         private void MediaPlayer_Playing(object sender, EventArgs e)
         {
             if (AudioTracks == null && SubtitleTracks == null)
@@ -357,6 +390,37 @@ namespace MultiplayerVideoPlayer
             SubtitleTracks = subs.ToArray();
             CurrentAudioTrack = 0;
             CurrentSubtitleTrack = -1;
+
+            //Chapter Titles
+            MediaPlayer.Media.Parse(MediaParseOptions.ParseLocal);
+            Chapters = MediaPlayer.FullChapterDescriptions();
+        }
+
+        public void ShowOverlayText(string text)
+        {
+            fileNameText.Text = text;
+            fileNameText.Show();
+            timer2.Stop();
+            timer2.Start();
+        }
+
+        public void HideOverlayText()
+        {
+            timer2.Stop();
+            fileNameText.Hide();
+        }
+
+        public string FormatMilliseconds(long milliseconds)
+        {
+            return TimeSpan.FromMilliseconds(milliseconds).ToString(@"hh\:mm\:ss");
+        }
+
+        public string GetChapterOverlayText(int chapterIndex)
+        {
+            if(Chapters == null || Chapters.Length < 1)
+                return "No Chapters";
+
+            return $"{FormatMilliseconds(Chapters[chapterIndex].TimeOffset)} / {FormatMilliseconds(Media.Duration)} \"{Chapters[chapterIndex].Name}\" ({chapterIndex + 1}/{Chapters.Length})";
         }
         #endregion
     }

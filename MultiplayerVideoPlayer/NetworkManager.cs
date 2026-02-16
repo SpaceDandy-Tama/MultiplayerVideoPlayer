@@ -183,6 +183,7 @@ namespace MultiplayerVideoPlayer
 
             MediaPlayer.Pause();
             MediaPlayer.Time = time;
+            Program.Form.ShowOverlayText($"Pause at {Program.Form.FormatMilliseconds(time)}");
         }
         public void SendPause(long time)
         {
@@ -206,6 +207,8 @@ namespace MultiplayerVideoPlayer
                 MediaPlayer.Play(Program.Form.Media);
                 MediaPlayer.Time = time;
             }
+
+            Program.Form.ShowOverlayText($"Play at {Program.Form.FormatMilliseconds(time)}");
         }
         public void SendContinue(long time)
         {
@@ -218,6 +221,7 @@ namespace MultiplayerVideoPlayer
         public void Skip(long millisecondsDelta)
         {
             MediaPlayer.Time += millisecondsDelta;
+            Program.Form.ShowOverlayText($"Skip by {millisecondsDelta} ms");
         }
         public void SendSkip(long millisecondsDelta)
         {
@@ -230,6 +234,7 @@ namespace MultiplayerVideoPlayer
         public void Seek(long time)
         {
             MediaPlayer.Time = time;
+            Program.Form.ShowOverlayText($"Seek to {Program.Form.FormatMilliseconds(time)}");
         }
         public void SendSeek(long time)
         {
@@ -242,6 +247,9 @@ namespace MultiplayerVideoPlayer
         public void ChapterSkip(int chapter)
         {
             MediaPlayer.Chapter = chapter;
+
+            Program.Form.ShowOverlayText(Program.Form.GetChapterOverlayText(MediaPlayer.Chapter));
+
         }
         public void SendChapterSkip(int chapter)
         {
