@@ -39,7 +39,10 @@ namespace MultiplayerVideoPlayer
             Program.AppSetting = AppSetting.Load();
 
             if (Program.AppSetting.LastPath == string.Empty || !Directory.Exists(Program.AppSetting.LastPath))
+            {
                 Program.AppSetting.LastPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
+                Program.AppSetting.Save();
+            }
         }
 
         //host
