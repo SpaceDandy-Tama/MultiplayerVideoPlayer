@@ -208,9 +208,10 @@ namespace MultiplayerVideoPlayer
             }
             else
             {
+                this.WindowState = FormWindowState.Normal;
+                
                 WindowLocation = this.Location;
-                Console.WriteLine(WindowLocation);
-                WindowSize = this.Size;
+                WindowSize = this.Size;                
 
                 Screen currentScreen = Screen.FromControl(this);
 

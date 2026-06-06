@@ -19,8 +19,7 @@ namespace MultiplayerVideoPlayer
             return Path.Combine(directoryPath, $"{Application.ProductName}Settings.tiny");
         }
         
-        public string LastPath = string.Empty;
-       
+        public string LastPath = string.Empty;       
 
         public static AppSetting Load()
         {
