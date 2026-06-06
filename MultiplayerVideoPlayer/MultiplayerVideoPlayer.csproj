@@ -166,6 +166,7 @@
     <Compile Include="..\TINYSharp\TINY\Tiny.cs">
       <Link>Tiny.cs</Link>
     </Compile>
+    <Compile Include="AppSetting.cs" />
     <Compile Include="Downloader.cs">
       <SubType>Form</SubType>
     </Compile>

@@ -209,11 +209,14 @@ namespace MultiplayerVideoPlayer
             else
             {
                 WindowLocation = this.Location;
+                Console.WriteLine(WindowLocation);
                 WindowSize = this.Size;
 
+                Screen currentScreen = Screen.FromControl(this);
+
                 this.FormBorderStyle = FormBorderStyle.None;
-                this.Location = new Point(0, 0);
-                this.Size = new Size(Screen.PrimaryScreen.Bounds.Width, Screen.PrimaryScreen.Bounds.Height);
+                this.Location = new Point(currentScreen.Bounds.X, currentScreen.Bounds.Y); ;
+                this.Size = new Size(currentScreen.Bounds.Width, currentScreen.Bounds.Height);
 
                 IsFullscreen = true;
             }

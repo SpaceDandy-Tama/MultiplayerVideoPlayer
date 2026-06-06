@@ -1,4 +1,5 @@
-﻿using MultiplayerVideoPlayer.Properties;
+﻿using LibVLCSharp.Shared;
+using MultiplayerVideoPlayer.Properties;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -34,6 +35,11 @@ namespace MultiplayerVideoPlayer
             }
 
             this.Icon = Program.Icon;
+            
+            Program.AppSetting = AppSetting.Load();
+
+            if (Program.AppSetting.LastPath == string.Empty || !Directory.Exists(Program.AppSetting.LastPath))
+                Program.AppSetting.LastPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
         }
 
         //host
@@ -68,18 +74,24 @@ namespace MultiplayerVideoPlayer
         //select file
         private void button4_Click(object sender, EventArgs e)
         {
-            openFileDialog1.InitialDirectory = Application.StartupPath;
             openFileDialog1.Filter = Filter;
+            openFileDialog1.InitialDirectory = Program.AppSetting.LastPath;
             openFileDialog1.ShowDialog();
             string filename;
             if (openFileDialog1.FileName != "openFileDialog1")
+            {
                 filename = openFileDialog1.FileName;
+                Program.AppSetting.LastPath = Path.GetDirectoryName(filename);
+                Program.AppSetting.Save();
+            }                
             else
                 filename = "";
 
-            textBox1.Text = filename;
+            textBox1.Text = filename;              
+            
         }
 
         public string[] HandleArgs() => Args;
+
     }
 }

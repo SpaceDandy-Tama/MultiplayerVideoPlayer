@@ -32,6 +32,8 @@ namespace MultiplayerVideoPlayer
 
         public static HttpClient HttpClient = null;
 
+        public static AppSetting AppSetting = null;
+
         /// <summary>
         /// The main entry point for the application.
         /// </summary>
