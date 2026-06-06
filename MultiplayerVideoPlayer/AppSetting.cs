@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System.Collections.Generic;
+using System.IO;
 using System.Windows.Forms;
 
 using Tiny;
@@ -19,7 +20,8 @@ namespace MultiplayerVideoPlayer
             return Path.Combine(directoryPath, $"{Application.ProductName}Settings.tiny");
         }
         
-        public string LastPath = string.Empty;       
+        public string LastPath = string.Empty;
+        public List<string> PreviousHosts = new List<string>();
 
         public static AppSetting Load()
         {

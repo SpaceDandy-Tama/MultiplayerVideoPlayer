@@ -11,6 +11,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace MultiplayerVideoPlayer
 {
@@ -38,6 +39,8 @@ namespace MultiplayerVideoPlayer
             
             Program.AppSetting = AppSetting.Load();
 
+            HandleComboBox();
+
             if (Program.AppSetting.LastPath == string.Empty || !Directory.Exists(Program.AppSetting.LastPath))
             {
                 Program.AppSetting.LastPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
@@ -56,6 +59,19 @@ namespace MultiplayerVideoPlayer
         private void button2_Click(object sender, EventArgs e)
         {
             Args = new string[4] { Quality, Link, Port, IP };
+            if(Program.AppSetting.PreviousHosts == null)
+                Program.AppSetting.PreviousHosts = new List<string>();
+
+            if (!Program.AppSetting.PreviousHosts.Contains(IP.ToString()))
+            {
+                DialogResult result = MessageBox.Show("This is your first time connecting to this IP! Do you want to save it for later?", Application.ProductName, MessageBoxButtons.YesNo, MessageBoxIcon.Question);
+                if (result == DialogResult.Yes)
+                {
+                    Program.AppSetting.PreviousHosts.Add(IP.ToString());
+                    Program.AppSetting.Save();
+                }                
+            }                
+                            
             Close();
         }
 
@@ -92,6 +108,16 @@ namespace MultiplayerVideoPlayer
 
             textBox1.Text = filename;              
             
+        }
+
+        private void HandleComboBox()
+        {
+            if(Program.AppSetting.PreviousHosts != null && Program.AppSetting.PreviousHosts.Count > 0)
+            {
+                comboBox2.Items.AddRange(Program.AppSetting.PreviousHosts.ToArray());
+                comboBox2.Text = comboBox2.Items[comboBox2.Items.Count-1].ToString();
+            }
+                
         }
 
         public string[] HandleArgs() => Args;
