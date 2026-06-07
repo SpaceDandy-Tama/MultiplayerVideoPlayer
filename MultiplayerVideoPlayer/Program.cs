@@ -167,6 +167,9 @@ namespace MultiplayerVideoPlayer
                     if (arg.StartsWith("-quality:"))
                         quality = arg.Remove(0, 9);
                 }
+
+                if (port < 0)
+                    port = 9200;
             }
 
             if (noLinkOrFile)
