@@ -24,7 +24,7 @@ namespace MultiplayerVideoPlayer
         public string LastPath = string.Empty;
         public List<string> PreviousHosts = new List<string>();
         public string TempDir = null;
-        public string SaveDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "MVP Downloads");
+        public string SaveDir = null;
 
         public static AppSetting Load()
         {

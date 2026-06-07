@@ -34,6 +34,7 @@ namespace MultiplayerVideoPlayer
 
         public static AppSetting AppSetting = null;
         public static string TempPath = null;
+        public static string SavePath = null;
 
         /// <summary>
         /// The main entry point for the application.
@@ -56,10 +57,16 @@ namespace MultiplayerVideoPlayer
             Application.SetCompatibleTextRenderingDefault(false);
 
             Program.AppSetting = AppSetting.Load();
-            if (AppSetting.TempDir != null && Directory.Exists(AppSetting.TempDir))
+
+            if (Program.AppSetting.TempDir != null && Directory.Exists(Path.GetDirectoryName(Program.AppSetting.TempDir)))
                 Program.TempPath = Program.AppSetting.TempDir;
             else
                 Program.TempPath = Path.Combine(Path.GetTempPath(), "MVPTemp");
+
+            if (Program.AppSetting.SaveDir != null && Directory.Exists(Path.GetDirectoryName(Program.AppSetting.SaveDir)))
+                Program.SavePath = Program.AppSetting.SaveDir;
+            else
+                Program.SavePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "MVP Downloads");
 
             if (args == null || args.Length == 0)
             {
@@ -139,40 +146,27 @@ namespace MultiplayerVideoPlayer
                     await Bootstrap();
                     return;
                 }
-                else
-                {
-                    quality = args[0].Remove(args[0].Length - 1);
-                }
-
-                if (args[1].StartsWith("http") || File.Exists(args[1]))
-                    filePath = args[1];
+                else if (args[0].StartsWith("http") || File.Exists(args[0]))
+                    filePath = args[0];
                 else
                     noLinkOrFile = true;
 
-                if (args.Length == 2)
-                    downloadOnly = true;
-
-                if (args.Length < 3 || !int.TryParse(args[2], out port))
-                    port = 9200;
-
-                string hostOnlyDir = Path.Combine(Application.StartupPath, "hostonly");
-                string hostNameDir = "hostname";
-                string[] fileNames = Directory.GetFiles(Application.StartupPath);
-                foreach (string fileName in fileNames)
+                for(int i = 1; i < args.Length; i++)
                 {
-                    if (Path.GetFileName(fileName).StartsWith(hostNameDir))
-                    {
-                        hostNameDir = Path.Combine(Application.StartupPath, fileName);
-                        break;
-                    }
-                }
+                    string arg = args[i];
 
-                if (File.Exists(hostOnlyDir))
-                    hostName = null;
-                else if (args.Length > 3)
-                    hostName = args[3];
-                else if (File.Exists(hostNameDir))
-                    hostName = File.ReadAllText(hostNameDir);
+                    if (arg.StartsWith("-host:"))
+                        hostName = arg.Remove(0, 6);
+                    if (arg.StartsWith("-port:"))
+                    {
+                        if (!int.TryParse(arg.Remove(0, 6), out port))
+                            port = 9200;
+                    }
+                    if (arg.Equals("-downloadOnly", StringComparison.OrdinalIgnoreCase))
+                        downloadOnly = true;
+                    if (arg.StartsWith("-quality:"))
+                        quality = arg.Remove(0, 9);
+                }
             }
 
             if (noLinkOrFile)
@@ -226,7 +220,8 @@ namespace MultiplayerVideoPlayer
         public static void PlayMedia(string filePath, string hostName, int port, string titleName)
         {
             StartNetworkManager(hostName, port, filePath);
-            TcpFileSender.SendAsync(port, filePath);
+            if(string.IsNullOrEmpty(hostName))
+                TcpFileSender.SendAsync(port, filePath);
             Application.Run(Form = new MvpMain(filePath, titleName));
         }
 
@@ -235,7 +230,7 @@ namespace MultiplayerVideoPlayer
             if (NetworkManager.IsInitialized)
                 return;
 
-            while (Form == null ||!Form.MediaPlayer.IsPlaying)
+            while (Form == null || !Form.MediaPlayer.IsPlaying)
                 await Task.Delay(100);
 
             NetworkManager = new NetworkManager(hostName, port, filePath);
