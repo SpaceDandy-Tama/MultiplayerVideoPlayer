@@ -560,7 +560,6 @@ namespace MultiplayerVideoPlayer
 
         public static void KeepTempFiles()
         {
-            //checks if the settings is null, if so puts the video in my videos folder of the system otherwise if the dir doesnt exists it created it BUT need to sanitize the savedir - CAGATUS
             if(Program.AppSetting.SaveDir == null)
             {
                 string savedir = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyVideos), Application.ProductName);
@@ -570,7 +569,6 @@ namespace MultiplayerVideoPlayer
             }                
             else if (Directory.Exists(Program.AppSetting.SaveDir) == false)
                 Directory.CreateDirectory(Program.AppSetting.SaveDir);
-            Console.WriteLine(Program.AppSetting.SaveDir);
             string[] tempFileNames = Directory.GetFiles(Program.TempPath);
             foreach (string fileName in tempFileNames)
             {
