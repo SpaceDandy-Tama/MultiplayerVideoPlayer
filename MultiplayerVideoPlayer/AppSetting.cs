@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Windows.Forms;
 
@@ -22,6 +23,8 @@ namespace MultiplayerVideoPlayer
         
         public string LastPath = string.Empty;
         public List<string> PreviousHosts = new List<string>();
+        public string TempDir = null;
+        public string SaveDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "MVP Downloads");
 
         public static AppSetting Load()
         {

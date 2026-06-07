@@ -36,8 +36,6 @@ namespace MultiplayerVideoPlayer
             }
 
             this.Icon = Program.Icon;
-            
-            Program.AppSetting = AppSetting.Load();
 
             HandleComboBox();
 
@@ -46,6 +44,8 @@ namespace MultiplayerVideoPlayer
                 Program.AppSetting.LastPath = Environment.GetFolderPath(Environment.SpecialFolder.Desktop);
                 Program.AppSetting.Save();
             }
+
+            checkBox1.Enabled = Program.AppSetting.TempDir != null;
         }
 
         //host

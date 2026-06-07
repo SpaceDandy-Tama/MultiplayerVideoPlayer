@@ -33,6 +33,7 @@ namespace MultiplayerVideoPlayer
         public static HttpClient HttpClient = null;
 
         public static AppSetting AppSetting = null;
+        public static string TempPath = null;
 
         /// <summary>
         /// The main entry point for the application.
@@ -54,6 +55,11 @@ namespace MultiplayerVideoPlayer
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
 
+            Program.AppSetting = AppSetting.Load();
+            if (AppSetting.TempDir != null && Directory.Exists(AppSetting.TempDir))
+                Program.TempPath = Program.AppSetting.TempDir;
+            else
+                Program.TempPath = Path.Combine(Path.GetTempPath(), "MVPTemp");
 
             if (args == null || args.Length == 0)
             {
@@ -510,17 +516,16 @@ namespace MultiplayerVideoPlayer
                 return null;
             }
 
-            string tempDir = Path.Combine(Application.StartupPath, "temp");
-            if(Directory.Exists(tempDir))
-                Directory.Delete(tempDir, true);
-            Directory.CreateDirectory(tempDir);
+            if(Directory.Exists(Program.TempPath))
+                Directory.Delete(Program.TempPath, true);
+            Directory.CreateDirectory(Program.TempPath);
 
             //--write-subs writes the subs as external subs, doesn't work together with --embed-subs
             string arguments;
             if(link.Contains("youtube") || link.Contains("youtu.be"))
-                arguments = $"-f bestvideo[height<={quality}]+bestaudio --merge-output-format mp4 --audio-multistreams --sub-lang \"en-US,en-GB,tr\" --embed-subs --embed-metadata --embed-thumbnail --embed-chapters --write-description -P \"{tempDir}\" -o \"%(uploader)s - %(title)s.%(ext)s\" \"{link}\"";
+                arguments = $"-f bestvideo[height<={quality}]+bestaudio --merge-output-format mp4 --audio-multistreams --sub-lang \"en-US,en-GB,tr\" --embed-subs --embed-metadata --embed-thumbnail --embed-chapters --write-description -P \"{Program.TempPath}\" -o \"%(uploader)s - %(title)s.%(ext)s\" \"{link}\"";
             else
-                arguments = $"-f bestvideo+bestaudio/best --merge-output-format mp4 -P \"{tempDir}\" -o \"%(uploader)s - %(title)s.%(ext)s\" \"{link}\"";
+                arguments = $"-f bestvideo+bestaudio/best --merge-output-format mp4 -P \"{Program.TempPath}\" -o \"%(uploader)s - %(title)s.%(ext)s\" \"{link}\"";
 
             System.Diagnostics.Process.Start(Path.Combine(Application.StartupPath, "yt-dlp.exe"), arguments).WaitForExit(int.MaxValue);
 
@@ -530,7 +535,7 @@ namespace MultiplayerVideoPlayer
             {
                 await Task.Delay(100);
 
-                string[] fileNames = Directory.GetFiles(tempDir);
+                string[] fileNames = Directory.GetFiles(Program.TempPath);
                 foreach(string fileName in fileNames)
                 {
                     if (fileName.EndsWith(".mp4"))
@@ -542,7 +547,7 @@ namespace MultiplayerVideoPlayer
                 if (resultFileName == null)
                 {
                     fallbackAttempted = true;
-                    arguments = $"--force-generic-extractor --merge-output-format mp4 -P \"{tempDir}\" -o \"%(uploader)s - %(title)s.%(ext)s\" \"{link}\"";
+                    arguments = $"--force-generic-extractor --merge-output-format mp4 -P \"{Program.TempPath}\" -o \"%(uploader)s - %(title)s.%(ext)s\" \"{link}\"";
                     System.Diagnostics.Process.Start(Path.Combine(Application.StartupPath, "yt-dlp.exe"), arguments).WaitForExit(int.MaxValue);
                 }
             }
@@ -555,22 +560,18 @@ namespace MultiplayerVideoPlayer
 
         public static void RemoveTempFiles()
         {
-            string tempDir = Path.Combine(Application.StartupPath, "temp");
-            Directory.Delete(tempDir, true);
+            Directory.Delete(Program.TempPath, true);
         }
 
         public static void KeepTempFiles()
         {
-            string videoPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyVideos), "MVP Downloads");
-            if (Directory.Exists(videoPath) == false)
-                Directory.CreateDirectory(videoPath);
+            if (Directory.Exists(Program.AppSetting.SaveDir) == false)
+                Directory.CreateDirectory(Program.AppSetting.SaveDir);
 
-            string tempDir = Path.Combine(Application.StartupPath, "temp");
-
-            string[] tempFileNames = Directory.GetFiles(tempDir);
+            string[] tempFileNames = Directory.GetFiles(Program.TempPath);
             foreach (string fileName in tempFileNames)
             {
-                string destFileName = Path.Combine(videoPath, Path.GetFileName(fileName));
+                string destFileName = Path.Combine(Program.AppSetting.SaveDir, Path.GetFileName(fileName));
                 if (File.Exists(destFileName))
                     File.Delete(destFileName);
                 File.Move(fileName, destFileName);
