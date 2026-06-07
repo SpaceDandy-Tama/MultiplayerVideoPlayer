@@ -563,19 +563,12 @@ namespace MultiplayerVideoPlayer
 
         public static void KeepTempFiles()
         {
-            if(Program.AppSetting.SaveDir == null)
-            {
-                string savedir = Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.MyVideos), Application.ProductName);
-                if (Directory.Exists(savedir) == false)
-                    Directory.CreateDirectory(savedir);
-                Program.AppSetting.SaveDir = savedir;
-            }                
-            else if (Directory.Exists(Program.AppSetting.SaveDir) == false)
-                Directory.CreateDirectory(Program.AppSetting.SaveDir);
+            if (!Directory.Exists(Program.SavePath))
+                Directory.CreateDirectory(Program.SavePath);
             string[] tempFileNames = Directory.GetFiles(Program.TempPath);
             foreach (string fileName in tempFileNames)
             {
-                string destFileName = Path.Combine(Program.AppSetting.SaveDir, Path.GetFileName(fileName));
+                string destFileName = Path.Combine(Program.SavePath, Path.GetFileName(fileName));
                 if (File.Exists(destFileName))
                     File.Delete(destFileName);
                 File.Move(fileName, destFileName);
