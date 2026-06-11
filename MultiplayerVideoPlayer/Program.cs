@@ -186,6 +186,7 @@ namespace MultiplayerVideoPlayer
                     //    Form3.Show();
                     //}
                     filePath = TcpFileReceiver.SavePath;
+                    TempFilesDownloaded = true;
                 }
                 else
                 {

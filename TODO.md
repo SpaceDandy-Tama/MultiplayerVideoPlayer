@@ -1,5 +1,6 @@
 MVPv1.5.0:
 - Throttled FileSender for equal bandwidth
+- Continue receiving the same file rather than overwrite it when rejoining
 - Smarter Bootstrap
     - Fetch missing/broken files instead of everything
     - Script generation workaround to manifest embedding to executable

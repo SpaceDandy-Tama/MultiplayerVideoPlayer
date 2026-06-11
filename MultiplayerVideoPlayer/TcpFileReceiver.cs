@@ -12,6 +12,7 @@ namespace MultiplayerVideoPlayer
         public static long FileLength = long.MaxValue;
         public static string SavePath = null;
         public static bool Done => TotalRead == FileLength;
+        public static bool Abort = false;
 
         public static async Task<string> ReceiveAsync(string ip, int port, int chunkSize = 64 * 1024)
         {
@@ -44,7 +45,10 @@ namespace MultiplayerVideoPlayer
                             throw new Exception("Client disconnected while sending filename.");
                         read += bytesRead;
                     }
-                    SavePath = Encoding.UTF8.GetString(nameBuffer);
+
+                    SavePath = Path.Combine(Program.TempPath, Encoding.UTF8.GetString(nameBuffer));
+                    if(!Directory.Exists(Program.TempPath))
+                        Directory.CreateDirectory(Program.TempPath);
 
                     using (FileStream fs = new FileStream(SavePath, FileMode.Create, FileAccess.Write, FileShare.Read, bufferSize: 4096, useAsync: true))
                     {
@@ -65,6 +69,9 @@ namespace MultiplayerVideoPlayer
                         TotalRead = 0;
                         while (TotalRead < FileLength)
                         {
+                            if (Abort)
+                                break;
+
                             int bytesToRead = (int)Math.Min(chunkSize, FileLength - TotalRead);
                             int bytesRead = await networkStream.ReadAsync(buffer, 0, bytesToRead);
                             if (bytesRead == 0)

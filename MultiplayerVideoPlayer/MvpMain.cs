@@ -318,6 +318,8 @@ namespace MultiplayerVideoPlayer
             if (!Program.TempFilesDownloaded)
                 return;
 
+            TcpFileReceiver.Abort = true;
+
             DialogResult result = MessageBox.Show("Do you want to keep this video?", "Downloaded Video", MessageBoxButtons.YesNo);
 
             MediaPlayer?.Stop();
