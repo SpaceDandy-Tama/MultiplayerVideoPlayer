@@ -86,7 +86,7 @@ namespace MultiplayerVideoPlayer
                 if (IsNetworked)
                     NetworkManager.SendPause(MediaPlayer.Time);
                 if (!IsNetworked || IsAuthoritative)
-                    ShowOverlayText("Pause");
+                    ShowOverlayText($"Pause at {FormatMilliseconds(MediaPlayer.Time)}");
             }
             else if(MediaPlayer.WillPlay)
             {
@@ -95,7 +95,7 @@ namespace MultiplayerVideoPlayer
                 if (IsNetworked)
                     NetworkManager.SendContinue(MediaPlayer.Time);
                 if (!IsNetworked || IsAuthoritative)
-                    ShowOverlayText("Play");
+                    ShowOverlayText($"Play at {FormatMilliseconds(MediaPlayer.Time)}");
             }
             else
             {
