@@ -8,4 +8,5 @@ MVPv1.5.0:
 	- bootstrap loop bug
 		- fallback for unresolved 3rd-party dependency links
 		- fix for non-english character issues in the fullpath
+	- cleanup temp folder
 - Don't save when settings don't change

@@ -62,7 +62,10 @@ namespace MultiplayerVideoPlayer
 
             FileName = titleName;
 
-            LibVLC = new LibVLC();
+            if (AppSetting.Current.StereoMixdown)
+                LibVLC = new LibVLC("--stereo-mode=6"); //6 is headphone, because stereo is inconsistent when it comes to binaural mixdown of surround audio
+            else
+                LibVLC = new LibVLC();
             MediaPlayer = new MediaPlayer(LibVLC);
             VideoView.MediaPlayer = MediaPlayer;
             Media = new Media(LibVLC, new Uri(Path.GetFullPath(filePath)));
@@ -74,6 +77,10 @@ namespace MultiplayerVideoPlayer
             this.Icon = Program.Icon;
 
             ShowOverlayText(FileName);
+
+#if DEBUG
+            MessageBox.Show($"VLC Version: {LibVLC.Version}");
+#endif
         }
 
         #region Controls

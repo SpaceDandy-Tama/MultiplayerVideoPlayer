@@ -22,6 +22,7 @@ namespace MultiplayerVideoPlayer
         private string IP => comboBox2.Text;
         private string Quality => comboBox1.Text;
         private bool Save2Temp => checkBox1.Checked;
+        private bool StereoMixdown => checkBox2.Checked;
         private string UpdateCommand = "-update";
         private string[] Args;
         private string Filter = "Video Files (*.mkv, *.mp4, *.webm,)|*.mkv;*.mp4;*.webm";
@@ -46,6 +47,14 @@ namespace MultiplayerVideoPlayer
             }
 
             checkBox1.Enabled = Program.AppSetting.TempDir != null;
+            checkBox2.Checked = Program.AppSetting.StereoMixdown;
+            checkBox2.CheckedChanged += CheckBox2_CheckedChanged; //must be after initial Checked assignment
+        }
+
+        private void CheckBox2_CheckedChanged(object sender, EventArgs e)
+        {
+            Program.AppSetting.StereoMixdown = checkBox2.Checked;
+            Program.AppSetting.Save();
         }
 
         //host

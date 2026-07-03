@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Windows.Forms;
-
+using System.Windows.Forms.VisualStyles;
 using Tiny;
 
 namespace MultiplayerVideoPlayer
@@ -25,6 +25,7 @@ namespace MultiplayerVideoPlayer
         public List<string> PreviousHosts = new List<string>();
         public string TempDir = null;
         public string SaveDir = null;
+        public bool StereoMixdown = true;
 
         public static AppSetting Load()
         {
